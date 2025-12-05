@@ -1,0 +1,1401 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>緊急求助專區 - 領事保護與居民權利</title>
+    <!-- 引入 D3.js 和 TopoJSON -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://unpkg.com/topojson-client@3"></script>
+    <style>
+        /* 基礎重置與移動優先樣式 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            font-size: 16px;
+            scroll-behavior: smooth;
+            height: 100%;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft JhengHei", sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(180deg, #0a0f2e 0%, #1A2B6D 100%);
+            min-height: 100vh;
+        }
+
+        /* 觸控目標至少44px */
+        button, 
+        a, 
+        .menu-toggle,
+        .btn,
+        .lang-btn,
+        .menu-item,
+        .stat-item {
+            min-height: 44px;
+            min-width: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* 導航欄 - 更新背景為hero模板的漸變，初始隱藏並在上方 */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 1000;
+            padding: 0.5rem 1rem;
+            background: linear-gradient(135deg, rgba(26, 43, 109, 0.95) 0%, rgba(213, 43, 30, 0.95) 100%);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+            transition: transform 0.8s ease-out, opacity 0.8s ease-out;
+            transform: translateY(-100%); /* 初始位置：在上方不可見 */
+            opacity: 0;
+            height: 60px;
+        }
+
+        .header.visible {
+            transform: translateY(0); /* 最終位置：在頂部可見 */
+            opacity: 1;
+        }
+
+        .header.hidden {
+            transform: translateY(-100%);
+        }
+
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 100%;
+        }
+
+        .logo {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #FFD700;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .menu-toggle {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #FFD700;
+            padding: 0.5rem;
+            z-index: 1001;
+        }
+
+        /* 側邊菜單 - 更新背景為hero模板的漸變 */
+        .side-menu {
+            position: fixed;
+            top: 0;
+            right: -100%;
+            width: 85%;
+            max-width: 400px;
+            height: 100vh;
+            background: linear-gradient(135deg, #1A2B6D 0%, #D52B1E 100%);
+            box-shadow: -5px 0 25px rgba(0, 0, 0, 0.1);
+            transition: right 0.4s ease-in-out;
+            z-index: 1002;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .side-menu.active {
+            right: 0;
+        }
+
+        .menu-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s;
+            z-index: 1001;
+        }
+
+        .menu-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .menu-header {
+            padding: 1.2rem;
+            background: rgba(0, 0, 0, 0.2);
+            color: white;
+        }
+
+        .menu-header h2 {
+            font-size: 1.2rem;
+            margin-bottom: 0.3rem;
+            color: #FFD700;
+        }
+
+        .menu-header p {
+            opacity: 0.9;
+            font-size: 0.8rem;
+        }
+
+        .menu-content {
+            flex: 1;
+            padding: 1.2rem;
+        }
+
+        .menu-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .menu-section h3 {
+            font-size: 1rem;
+            color: #FFD700;
+            margin-bottom: 0.8rem;
+            padding-bottom: 0.3rem;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            padding: 0.6rem 0;
+            color: white;
+            text-decoration: none;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .menu-item:last-child {
+            border-bottom: none;
+        }
+
+        .menu-item:hover {
+            color: #FFD700;
+            padding-left: 0.5rem;
+        }
+
+        .menu-item-icon {
+            width: 25px;
+            text-align: center;
+            margin-right: 0.6rem;
+            font-size: 1rem;
+        }
+
+        /* 語言選擇器 */
+        .lang-selector {
+            padding: 1.2rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            background-color: rgba(0, 0, 0, 0.2);
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .lang-btn {
+            padding: 0.4rem 0.8rem;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: white;
+        }
+
+        .lang-btn.active {
+            background-color: #FFD700;
+            color: #1A2B6D;
+            border-color: #FFD700;
+        }
+
+        /* 主容器 */
+        .main-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 地球容器 - 全畫面作為背景 */
+        .earth-section {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            background: linear-gradient(to bottom, #0a0f2e 0%, #1A2B6D 100%);
+            z-index: -1;
+        }
+
+        #globe-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #globe {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* 內容區域 - 在背景上方 */
+        .content-section {
+            position: relative;
+            z-index: 10;
+            margin-top: 80px;
+            padding: 2rem 1.5rem;
+            color: white;
+            min-height: calc(100vh - 60px);
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.8s ease-out 0.3s, transform 0.8s ease-out 0.3s;
+        }
+
+        .content-section.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* 頁面標題 - 緊急主題樣式 */
+        .page-title {
+            text-align: center;
+            font-size: 2.2rem;
+            margin-bottom: 2rem;
+            color: #FFD700;
+            position: relative;
+            padding-bottom: 1rem;
+        }
+
+        .page-title:after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 3px;
+            background-color: #D52B1E;
+        }
+
+        .emergency-title {
+            color: #FF3333;
+            text-shadow: 0 0 10px rgba(255, 51, 51, 0.5);
+        }
+
+        /* 內容卡片 */
+        .content-card {
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 12px;
+            padding: 2rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 2rem;
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .content-card h2 {
+            font-size: 1.8rem;
+            color: #FFD700;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .content-card h3 {
+            font-size: 1.4rem;
+            color: #FFD700;
+            margin: 1.5rem 0 1rem;
+        }
+
+        .content-card p {
+            font-size: 1.1rem;
+            line-height: 1.7;
+            margin-bottom: 1rem;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .content-card ul, .content-card ol {
+            padding-left: 2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .content-card li {
+            font-size: 1.1rem;
+            line-height: 1.7;
+            margin-bottom: 0.5rem;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        /* 功能區塊網格 */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .feature-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .feature-card h4 {
+            font-size: 1.3rem;
+            color: #FFD700;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .feature-card p {
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.8);
+            line-height: 1.6;
+        }
+
+        /* 緊急求助按鈕 */
+        .emergency-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #D52B1E 0%, #FF3333 100%);
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 1.2rem;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin: 1rem 0;
+            text-align: center;
+            width: 100%;
+            box-shadow: 0 0 20px rgba(213, 43, 30, 0.5);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 20px rgba(213, 43, 30, 0.5); }
+            50% { box-shadow: 0 0 30px rgba(213, 43, 30, 0.8); }
+            100% { box-shadow: 0 0 20px rgba(213, 43, 30, 0.5); }
+        }
+
+        .emergency-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(213, 43, 30, 0.7);
+            animation: none;
+        }
+
+        /* 緊急聯繫卡片 */
+        .emergency-contact-card {
+            background: rgba(213, 43, 30, 0.2);
+            border-radius: 10px;
+            padding: 1.5rem;
+            border: 2px solid rgba(213, 43, 30, 0.5);
+            margin: 1.5rem 0;
+            position: relative;
+        }
+
+        .emergency-contact-card h4 {
+            color: #FFD700;
+            font-size: 1.4rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .emergency-contact-card p {
+            font-size: 1.2rem;
+            margin: 0.8rem 0;
+        }
+
+        .phone-number {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #FFD700;
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 0.8rem 1.2rem;
+            border-radius: 8px;
+            display: inline-block;
+            margin: 0.5rem 0;
+            border: 1px solid #FFD700;
+        }
+
+        /* 提示框 */
+        .info-box {
+            background: rgba(255, 215, 0, 0.1);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .info-box h4 {
+            color: #FFD700;
+            font-size: 1.3rem;
+            margin-bottom: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .info-box p {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 1rem;
+        }
+
+        /* 警告框 */
+        .warning-box {
+            background: rgba(213, 43, 30, 0.15);
+            border: 2px solid rgba(213, 43, 30, 0.5);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .warning-box h4 {
+            color: #FF3333;
+            font-size: 1.3rem;
+            margin-bottom: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .warning-box p {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 1rem;
+        }
+
+        /* 按鈕樣式 */
+        .action-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #1A2B6D 0%, #D52B1E 100%);
+            color: white;
+            padding: 0.8rem 1.5rem;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1rem;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 1rem;
+        }
+
+        .action-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        /* 步驟指示器 */
+        .step-indicator {
+            display: flex;
+            align-items: center;
+            margin: 1.5rem 0;
+            position: relative;
+        }
+
+        .step-number {
+            background-color: #FFD700;
+            color: #1A2B6D;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+            margin-right: 1rem;
+            flex-shrink: 0;
+        }
+
+        .step-content {
+            flex: 1;
+        }
+
+        .step-content h5 {
+            color: #FFD700;
+            font-size: 1.2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        /* 頁腳 - 在第三區塊下面 */
+        #footer {
+            background-color: rgba(0, 0, 0, 0.8);
+            color: #ddd;
+            position: relative;
+            z-index: 20;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            transform: translateY(50px);
+            opacity: 0;
+            transition: transform 0.8s ease-out, opacity 0.8s ease-out;
+            transition-delay: 0.6s;
+        }
+
+        #footer.visible {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .footer-content {
+            padding: 3rem 1.5rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .footer-section {
+            margin-bottom: 2.5rem;
+        }
+
+        .footer-section h3 {
+            color: #FFD700;
+            font-size: 1.3rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .footer-links {
+            list-style: none;
+        }
+
+        .footer-links li {
+            margin-bottom: 0.8rem;
+        }
+
+        .footer-links a {
+            color: #ddd;
+            text-decoration: none;
+            font-size: 0.8rem;
+            transition: color 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            white-space: nowrap;
+        }
+
+        .footer-links a:hover {
+            color: #FFD700;
+        }
+
+        .footer-links a:before {
+            content: "›";
+            color: #FFD700;
+        }
+
+        .contact-text {
+            font-size: 0.95rem;
+            line-height: 1.7;
+            margin-bottom: 1.5rem;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .contact-email {
+            display: inline-block;
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 0.8rem 1.2rem;
+            border-radius: 4px;
+            color: #FFD700;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: background-color 0.2s;
+        }
+
+        .contact-email:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .copyright {
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 1.5rem;
+            text-align: center;
+            font-size: 0.9rem;
+            color: #aaa;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* 地球載入提示 */
+        .earth-loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            z-index: 2;
+            text-align: center;
+            font-size: 1.2rem;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 2rem;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            opacity: 0;
+            transition: opacity 0.5s ease-out;
+        }
+
+        .earth-loading.visible {
+            opacity: 1;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #FFD700;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* 輔助類 */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            border: 0;
+        }
+
+        .emergency-badge {
+            display: inline-block;
+            background-color: #D52B1E;
+            color: white;
+            font-size: 0.8rem;
+            padding: 0.2rem 0.6rem;
+            border-radius: 4px;
+            margin-left: 0.5rem;
+            font-weight: bold;
+        }
+
+        /* 提示框 */
+        .tooltip {
+            position: absolute;
+            padding: 0.75rem 1rem;
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            pointer-events: none;
+            z-index: 100;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            max-width: 250px;
+            display: none;
+        }
+
+        /* 暫無內容提示 */
+        .placeholder-content {
+            text-align: center;
+            padding: 3rem;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 12px;
+            border: 2px dashed rgba(255, 215, 0, 0.3);
+            margin: 2rem 0;
+        }
+
+        .placeholder-content h3 {
+            color: #FFD700;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .placeholder-content p {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 1.1rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* 桌面適配 (移動優先) */
+        @media (min-width: 768px) {
+            html {
+                font-size: 18px;
+            }
+
+            .logo {
+                font-size: 1.3rem;
+            }
+
+            .content-section {
+                padding: 3rem 2rem;
+                margin-top: 100px;
+            }
+
+            .page-title {
+                font-size: 2.5rem;
+            }
+
+            .content-card {
+                padding: 3rem;
+            }
+
+            .emergency-button {
+                width: auto;
+                padding: 1.2rem 3rem;
+                font-size: 1.4rem;
+            }
+
+            .footer-content {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 3rem;
+            }
+
+            .notification-date {
+                min-width: 150px;
+            }
+            
+            .footer-links a {
+                font-size: 0.85rem;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .content-section {
+                padding: 4rem 3rem;
+            }
+
+            .page-title {
+                font-size: 2.8rem;
+            }
+            
+            .footer-content {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 4rem;
+            }
+
+            .notification-date {
+                min-width: 180px;
+            }
+        }
+
+        @media (max-width: 767px) {
+            .features-grid {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+
+            .placeholder-content {
+                padding: 2rem 1rem;
+            }
+
+            .notification-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .notification-date {
+                min-width: auto;
+                border-right: none;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+                padding-right: 0;
+                padding-bottom: 0.5rem;
+                margin-bottom: 0.5rem;
+                width: 100%;
+            }
+
+            .notification-content {
+                padding-left: 0;
+            }
+            
+            .footer-links a {
+                font-size: 0.75rem;
+                white-space: normal;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 導航欄 - 初始隱藏 -->
+    <header class="header" id="header">
+        <nav class="navbar" aria-label="主導航">
+            <a href="#" class="logo">
+                <span>領事保護與居民權利</span>
+            </a>
+            <button class="menu-toggle" aria-expanded="false" aria-controls="side-menu">
+                ☰
+                <span class="sr-only">導航菜單</span>
+            </button>
+        </nav>
+    </header>
+
+    <!-- 側邊菜單遮罩 -->
+    <div class="menu-overlay" id="menu-overlay"></div>
+
+    <!-- 側邊菜單 -->
+    <aside class="side-menu" id="side-menu">
+        <div class="menu-header">
+            <h2>領事保護與居民權利</h2>
+            <p>您的海外安全守護者</p>
+        </div>
+        
+        <div class="menu-content">
+            <div class="menu-section">
+                <h3>特色活動</h3>
+                <a href="index.html" class="menu-item">
+                    <span class="menu-item-icon">⭐</span>
+                    <span>全球安全指數地圖</span>
+                </a>
+                <a href="consular-protection.html" class="menu-item">
+                    <span class="menu-item-icon">🛡️</span>
+                    <span>領事保護專區</span>
+                </a>
+                <a href="resident-rights.html" class="menu-item">
+                    <span class="menu-item-icon">📋</span>
+                    <span>居民身份權利專區</span>
+                </a>
+            </div>
+            
+            <div class="menu-section">
+                <h3>緊急服務</h3>
+                <a href="emergency.html" class="menu-item">
+                    <span class="menu-item-icon">🚨</span>
+                    <span>緊急求助專區 <span class="emergency-badge">24小時</span></span>
+                </a>
+                <a href="#" class="menu-item">
+                    <span class="menu-item-icon">✈️</span>
+                    <span>「我即將出國」專區</span>
+                </a>
+                <a href="#" class="menu-item">
+                    <span class="menu-item-icon">🆘</span>
+                    <span>「我在海外遇到困難」專區</span>
+                </a>
+            </div>
+            
+            <div class="menu-section">
+                <h3>資訊資源</h3>
+                <a href="#" class="menu-item">
+                    <span class="menu-item-icon">🗺️</span>
+                    <span>全球風險地圖</span>
+                </a>
+                <a href="#" class="menu-item">
+                    <span class="menu-item-icon">🎧</span>
+                    <span>播客集</span>
+                </a>
+                <a href="#" class="menu-item">
+                    <span class="menu-item-icon">🎬</span>
+                    <span>一分鐘短片集</span>
+                </a>
+                <a href="#" class="menu-item">
+                    <span class="menu-item-icon">📚</span>
+                    <span>資源專區</span>
+                </a>
+            </div>
+        </div>
+        
+        <div class="lang-selector">
+            <button class="lang-btn active" data-lang="zh-TW">繁</button>
+            <button class="lang-btn" data-lang="zh-CN">简</button>
+            <button class="lang-btn" data-lang="pt">PT</button>
+        </div>
+    </aside>
+
+    <!-- 主內容區域 -->
+    <main class="main-container">
+        <!-- 地球區域 - 全畫面背景 -->
+        <section class="earth-section">
+            <!-- 地球容器 -->
+            <div id="globe-container">
+                <svg id="globe"></svg>
+
+                <!-- 地球載入提示 -->
+                <div class="earth-loading" id="earth-loading">
+                    <div class="loading-spinner"></div>
+                    正在載入全球地圖...
+                </div>
+            </div>
+        </section>
+
+        <!-- 內容區域 -->
+        <section class="content-section" id="content-section">
+            <h1 class="page-title emergency-title">緊急求助專區</h1>
+            
+            <!-- 主要內容卡片 -->
+            <div class="content-card">
+                <h2>緊急情況處理指南</h2>
+                <p>當您在海外遇到緊急情況時，請保持冷靜，並按照以下指南採取適當行動。本專區提供24小時緊急聯絡方式和應急處理步驟，以確保您在海外期間的安全。</p>
+                
+                <!-- 最緊急求助按鈕 -->
+                <a href="tel:+861012308" class="emergency-button">
+                    🚨 立即撥打外交部全球領事保護應急呼叫中心：+86-10-12308
+                </a>
+                
+                <div class="warning-box">
+                    <h4>⚠️ 重要提醒</h4>
+                    <p>如果您或他人遇到生命危險、嚴重傷害或犯罪行為，請立即撥打當地緊急電話（警察、救護車、消防）並尋求現場幫助。同時聯絡中國駐當地使領館或外交部領事保護熱線。</p>
+                </div>
+                
+                <h3>全球緊急聯絡電話</h3>
+                
+                <div class="emergency-contact-card">
+                    <h4>🚨 中國外交部全球領事保護與服務</h4>
+                    <p>24小時應急呼叫中心：</p>
+                    <div class="phone-number">+86-10-12308</div>
+                    <p>或</p>
+                    <div class="phone-number">+86-10-59913991</div>
+                    <p>從中國境外撥打：0086-10-12308</p>
+                    <p>微信公眾號：「領事直通車」</p>
+                </div>
+                
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <h4>🚓 當地緊急服務</h4>
+                        <p><strong>警察/救護車/消防：</strong>請記住您所在國家的緊急電話號碼（如美國911、歐洲112、澳洲000等）</p>
+                        <p><strong>中國駐外使領館：</strong>查找並保存當地中國使領館的緊急聯絡方式</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <h4>🏥 醫療急救</h4>
+                        <p><strong>緊急醫療救助：</strong>撥打當地急救電話或前往最近醫院急診室</p>
+                        <p><strong>旅遊保險：</strong>聯繫您的旅遊保險公司獲取醫療協助和理賠指引</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <h4>🆘 其他緊急求助</h4>
+                        <p><strong>丟失證件：</strong>立即向當地警方報案並聯繫中國使領館辦理旅行證</p>
+                        <p><strong>財務困難：</strong>聯繫親友或使領館尋求協助</p>
+                    </div>
+                </div>
+                
+                <h3>緊急情況處理步驟</h3>
+                
+                <div class="step-indicator">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h5>保持冷靜，評估情況</h5>
+                        <p>深呼吸，保持冷靜，評估自身和周圍環境的安全性。如果處於危險中，立即轉移到安全地點。</p>
+                    </div>
+                </div>
+                
+                <div class="step-indicator">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h5>尋求當地緊急幫助</h5>
+                        <p>撥打當地緊急電話（警察、救護車、消防），清晰說明情況、位置和所需幫助。</p>
+                    </div>
+                </div>
+                
+                <div class="step-indicator">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h5>聯繫中國使領館</h5>
+                        <p>撥打外交部全球領事保護應急呼叫中心 +86-10-12308，或直接聯繫當地中國使領館。</p>
+                    </div>
+                </div>
+                
+                <div class="step-indicator">
+                    <div class="step-number">4</div>
+                    <div class="step-content">
+                        <h5>通知親友</h5>
+                        <p>在情況允許下，通知國內親友您的狀況和位置，請他們必要時協助聯繫相關部門。</p>
+                    </div>
+                </div>
+                
+                <div class="step-indicator">
+                    <div class="step-number">5</div>
+                    <div class="step-content">
+                        <h5>保存證據與記錄</h5>
+                        <p>拍照記錄現場情況，保存相關文件、票據和聯繫方式，這些可能在後續處理中需要用到。</p>
+                    </div>
+                </div>
+                
+                <h3>常見緊急情況處理</h3>
+                
+                <div class="info-box">
+                    <h4>📝 證件丟失或被盜</h4>
+                    <p><strong>立即行動：</strong>向當地警方報案，獲取報案證明。聯繫中國駐當地使領館，申請補辦旅行證件。保存護照、簽證複印件和照片備用。</p>
+                </div>
+                
+                <div class="info-box">
+                    <h4>💊 生病或受傷</h4>
+                    <p><strong>立即行動：</strong>撥打當地急救電話或前往醫院。聯繫旅遊保險公司安排醫療費用支付。使領館可提供當地醫院信息和語言協助。</p>
+                </div>
+                
+                <div class="info-box">
+                    <h4>💰 財務困難</h4>
+                    <p><strong>立即行動：</strong>聯繫親友通過西聯匯款等國際匯款方式協助。使領館可提供當地華僑組織信息，協助尋找臨時住宿或餐食。</p>
+                </div>
+                
+                <div class="info-box">
+                    <h4>⚖️ 涉及法律事務</h4>
+                    <p><strong>立即行動：</strong>要求聯絡律師和翻譯。使領館可提供律師名單和當地法律援助信息，但不能干預當地司法程序。</p>
+                </div>
+                
+                <div class="warning-box">
+                    <h4>🚫 注意事項</h4>
+                    <p>1. 領事保護不能代替當地法律，不能干預當地司法程序</p>
+                    <p>2. 使領館不能支付您的醫療、律師、酒店等費用</p>
+                    <p>3. 使領館不能幫助您獲得當地居留或工作許可</p>
+                    <p>4. 使領館不能代替您處理個人事務（如商業糾紛、勞資糾紛等）</p>
+                </div>
+                
+                <h3>緊急求助前的準備</h3>
+                <p>為應對可能的緊急情況，建議您提前做好以下準備：</p>
+                <ul>
+                    <li>保存外交部全球領事保護熱線 +86-10-12308</li>
+                    <li>記錄並保存中國駐當地使領館的地址和聯絡方式</li>
+                    <li>了解當地緊急電話號碼（警察、救護車、消防）</li>
+                    <li>購買包含緊急醫療和撤離的旅遊保險</li>
+                    <li>將護照、簽證等重要證件複印或拍照備份</li>
+                    <li>告知家人或朋友您的行程和聯絡方式</li>
+                </ul>
+                
+                <div style="display: flex; gap: 1rem; margin-top: 2rem; flex-wrap: wrap;">
+                    <a href="index.html" class="action-button">返回主頁</a>
+                    <a href="consular-protection.html" class="action-button">前往領事保護專區</a>
+                    <a href="resident-rights.html" class="action-button">前往居民權利專區</a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 頁腳 -->
+    <footer id="footer" class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h3>相關連結</h3>
+                <ul class="footer-links">
+                    <li><a href="https://www.fmprc.gov.cn/web/" target="_blank">中華人民共和國外交部</a></li>
+                    <li><a href="https://portaldascomunidades.mne.gov.pt/pt/" target="_blank">葡萄牙共和國外交部</a></li>
+                    <li><a href="https://cs.mfa.gov.cn/" target="_blank">中國領事服務網</a></li>
+                    <li><a href="https://mo.ocmfa.gov.cn/chn/" target="_blank">中華人民共和國外交部駐澳門特別行政區特派員公署</a></li>
+                    <li><a href="https://www.gov.mo/zh-hant/" target="_blank">澳門特別行政區政府入口網站</a></li>
+                    <li><a href="https://www.dsi.gov.mo/index_cn.jsp" target="_blank">澳門特別行政區政府身份證明局</a></li>
+                    <li><a href="https://www.elctp.k12.edu.mo/elctp/" target="_blank">澳門中葡職業技術學校</a></li>
+                </ul>
+            </div>
+            
+            <div class="footer-section">
+                <h3>聯絡我們</h3>
+                <p class="contact-text">
+                    本網站由一群中學生自主開發，旨在增進公眾對領事保護、協助服務及居民身份權利的認識與關注。由於團隊成員學業繁忙，網站信息將不定期更新與維護，如有不便，敬請理解。
+                    <br><br>
+                    我們誠摯歡迎您對網站用戶界面提出寶貴意見，若發現信息有誤也歡迎指正。
+                </p>
+                <a href="mailto:infodoprogramaem2526@gmail.com" class="contact-email">infodoprogramaem2526@gmail.com</a>
+            </div>
+        </div>
+        
+        <div class="copyright">
+            © 2025-2026 中葡職業技術學校高三翻譯宣傳領事保護與協助和居民權利小組（Escudos de Quíron） 版權所有
+        </div>
+    </footer>
+
+    <!-- 提示框 -->
+    <div class="tooltip" id="tooltip"></div>
+
+    <script>
+        // 文檔加載完成後初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            const header = document.getElementById('header');
+            const menuToggle = document.querySelector('.menu-toggle');
+            const sideMenu = document.getElementById('side-menu');
+            const menuOverlay = document.getElementById('menu-overlay');
+            const earthLoading = document.getElementById('earth-loading');
+            const contentSection = document.getElementById('content-section');
+            const langButtons = document.querySelectorAll('.lang-btn');
+            const footer = document.getElementById('footer');
+            
+            let lastScrollTop = 0;
+            let isMenuOpen = false;
+            
+            // 滾動監聽變量
+            let isFooterVisible = false;
+            
+            // D3.js 變數
+            let width, height, svg, projection, path, globeGroup, countryPaths;
+            
+            // 自動旋轉控制變數
+            let autoRotate = true;
+            let rotationSpeed = 0.1; // 每幀旋轉角度（緩慢自轉）
+            let animationId = null;
+            
+            // 頁面狀態
+            let isEarthLoaded = false;
+            
+            // 漢堡菜單切換功能
+            function toggleMenu() {
+                isMenuOpen = !isMenuOpen;
+                sideMenu.classList.toggle('active', isMenuOpen);
+                menuOverlay.classList.toggle('active', isMenuOpen);
+                menuToggle.setAttribute('aria-expanded', isMenuOpen);
+                document.body.style.overflow = isMenuOpen ? 'hidden' : '';
+            }
+
+            menuToggle.addEventListener('click', toggleMenu);
+            menuOverlay.addEventListener('click', toggleMenu);
+
+            // 關閉菜單當點擊菜單內的鏈接
+            sideMenu.addEventListener('click', function(e) {
+                if (e.target.tagName === 'A') {
+                    toggleMenu();
+                }
+            });
+
+            // 語言切換功能
+            langButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const lang = this.getAttribute('data-lang');
+                    
+                    // 更新按鈕狀態
+                    langButtons.forEach(btn => btn.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    console.log(`切換語言至: ${lang}`);
+                    
+                    if (lang === 'zh-CN') {
+                        document.documentElement.lang = 'zh-CN';
+                    } else if (lang === 'zh-TW') {
+                        document.documentElement.lang = 'zh-TW';
+                    } else if (lang === 'pt') {
+                        document.documentElement.lang = 'pt';
+                    }
+                });
+            });
+
+            // 滾動時隱藏/顯示導航欄和顯示動畫
+            window.addEventListener('scroll', function() {
+                const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+                
+                // 隱藏/顯示導航欄
+                if (!isMenuOpen) {
+                    if (scrollTop > lastScrollTop && scrollTop > 100) {
+                        header.classList.add('hidden');
+                    } else {
+                        header.classList.remove('hidden');
+                    }
+                }
+                
+                // 檢查頁腳是否進入視圖
+                if (!isFooterVisible && scrollTop > window.innerHeight * 0.7) {
+                    footer.classList.add('visible');
+                    isFooterVisible = true;
+                }
+                
+                lastScrollTop = scrollTop;
+            });
+            
+            // 自動旋轉動畫
+            function autoRotateAnimation() {
+                // 始終自動旋轉
+                const rotate = projection.rotate();
+                // 從右向左旋轉（增加經度值）
+                projection.rotate([rotate[0] + rotationSpeed, rotate[1], rotate[2]]);
+                
+                // 更新所有路徑
+                if (countryPaths) {
+                    countryPaths.attr("d", path);
+                    d3.select(".graticule").attr("d", path);
+                    d3.select(".sphere-outline").attr("d", path);
+                }
+                
+                // 繼續動畫循環
+                animationId = requestAnimationFrame(autoRotateAnimation);
+            }
+            
+            // 顯示界面元素 - 從標題列從上往下進入開始
+            function showInterfaceElements() {
+                // 顯示地球載入提示
+                earthLoading.classList.add('visible');
+                
+                // 延遲後顯示標題列（從上往下進入）
+                setTimeout(() => {
+                    header.classList.add('visible');
+                }, 300);
+                
+                // 地球加載完成後顯示內容區域和頁腳
+                if (isEarthLoaded) {
+                    showContentAndFooter();
+                }
+            }
+            
+            // 顯示內容區域和頁腳
+            function showContentAndFooter() {
+                // 顯示內容區域（淡入和上移動畫）
+                setTimeout(() => {
+                    contentSection.classList.add('visible');
+                }, 500);
+                
+                // 顯示頁腳（從下往上淡入）
+                setTimeout(() => {
+                    footer.classList.add('visible');
+                }, 800);
+            }
+            
+            // 初始化D3地球（簡化版，僅用於背景，緩慢自轉）
+            function initEarth() {
+                const container = document.getElementById('globe-container');
+                width = container.clientWidth;
+                height = container.clientHeight;
+                
+                svg = d3.select('#globe')
+                    .attr('width', width)
+                    .attr('height', height);
+                
+                // 設置3D正射投影
+                projection = d3.geoOrthographic()
+                    .scale(Math.min(width, height) / 2.5)
+                    .translate([width / 2, height / 2])
+                    .rotate([-30, -20, 0]) // 固定初始視角
+                    .precision(0.1);
+                
+                path = d3.geoPath(projection);
+                
+                // 創建群組
+                globeGroup = svg.append('g');
+                
+                // 繪製經緯線網格
+                const graticule = d3.geoGraticule();
+                globeGroup.append("path")
+                    .datum(graticule)
+                    .attr("class", "graticule")
+                    .attr("d", path)
+                    .attr("fill", "none")
+                    .attr("stroke", "rgba(255, 255, 255, 0.1)")
+                    .attr("stroke-width", 0.3)
+                    .attr("stroke-dasharray", "2,2");
+                
+                // 載入地圖數據
+                d3.json('https://unpkg.com/world-atlas@2/countries-110m.json')
+                    .then(worldData => {
+                        // 隱藏載入提示
+                        setTimeout(() => {
+                            earthLoading.style.opacity = '0';
+                            setTimeout(() => {
+                                earthLoading.style.display = 'none';
+                                earthLoading.classList.remove('visible');
+                                
+                                // 標記地球已加載
+                                isEarthLoaded = true;
+                                
+                                // 開始緩慢的自轉動畫
+                                autoRotateAnimation();
+                                
+                                // 如果標題列已顯示，則顯示內容區域和頁腳
+                                if (header.classList.contains('visible')) {
+                                    showContentAndFooter();
+                                }
+                                
+                            }, 500);
+                        }, 800);
+                        
+                        const countries = topojson.feature(worldData, worldData.objects.countries).features;
+                        
+                        // 繪製國家 - 簡化版，僅用於背景
+                        countryPaths = globeGroup.selectAll(".country")
+                            .data(countries)
+                            .enter().append("path")
+                            .attr("class", "country")
+                            .attr("d", path)
+                            .attr("fill", "rgba(255, 255, 255, 0.05)")
+                            .attr("stroke", "rgba(255, 255, 255, 0.1)")
+                            .attr("stroke-width", 0.2)
+                            .style("cursor", "default");
+                        
+                        // 繪製地球外輪廓
+                        const sphereOutline = globeGroup.append("path")
+                            .datum({type: "Sphere"})
+                            .attr("class", "sphere-outline")
+                            .attr("d", path)
+                            .attr("fill", "none")
+                            .attr("stroke", "rgba(255, 255, 255, 0.15)")
+                            .attr("stroke-width", 0.5);
+                        
+                    })
+                    .catch(err => {
+                        console.error("載入地圖數據失敗:", err);
+                        earthLoading.innerHTML = `
+                            <div style="color:#e74c3c;">載入地圖數據失敗</div>
+                            <div style="font-size:0.9rem; margin-top:0.5rem;">請檢查網絡連接後刷新頁面</div>
+                        `;
+                        
+                        // 即使載入失敗也標記為已加載並顯示內容
+                        isEarthLoaded = true;
+                        if (header.classList.contains('visible')) {
+                            showContentAndFooter();
+                        }
+                    });
+                
+                // 響應式調整
+                window.addEventListener('resize', function() {
+                    width = container.clientWidth;
+                    height = container.clientHeight;
+                    
+                    svg.attr('width', width).attr('height', height);
+                    
+                    projection
+                        .scale(Math.min(width, height) / 2.5)
+                        .translate([width / 2, height / 2]);
+                    
+                    // 更新所有路徑
+                    if (countryPaths) {
+                        countryPaths.attr("d", path);
+                        d3.select(".graticule").attr("d", path);
+                        d3.select(".sphere-outline").attr("d", path);
+                    }
+                });
+            }
+            
+            // 初始化頁面
+            document.documentElement.lang = 'zh-TW';
+            
+            // 頁面加載後開始初始化流程
+            window.addEventListener('load', function() {
+                // 立即開始顯示界面元素（從標題列開始）
+                showInterfaceElements();
+                
+                // 初始化地球（緩慢自轉背景）
+                setTimeout(initEarth, 500);
+            });
+            
+            // 如果地圖載入失敗的後備方案
+            setTimeout(function() {
+                if (earthLoading.style.display !== 'none') {
+                    earthLoading.innerHTML = "地圖載入失敗，顯示背景圖...<br><small>請檢查網絡連接</small>";
+                    
+                    // 標記地球已加載（失敗狀態）
+                    isEarthLoaded = true;
+                    if (header.classList.contains('visible')) {
+                        showContentAndFooter();
+                    }
+                }
+            }, 10000);
+        });
+    </script>
+</body>
+</html>
