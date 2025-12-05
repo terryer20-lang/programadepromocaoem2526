@@ -161,6 +161,33 @@
             font-size: 0.8rem; /* 缩小字体 */
         }
 
+        /* 語言選擇器 - 移動到菜單頂部，在菜單標題下方 */
+        .lang-selector {
+            padding: 1rem;
+            background-color: rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .lang-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: white;
+        }
+
+        .lang-btn.active {
+            background-color: #f6d52a;
+            color: #000000;
+            border-color: #f6d52a;
+        }
+
         .menu-content {
             flex: 1;
             padding: 1.2rem;
@@ -203,33 +230,6 @@
             text-align: center;
             margin-right: 0.6rem;
             font-size: 1rem; /* 缩小图标字体 */
-        }
-
-        /* 語言選擇器 */
-        .lang-selector {
-            padding: 1.2rem;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            background-color: rgba(0, 0, 0, 0.2);
-            display: flex;
-            justify-content: center;
-            gap: 0.5rem;
-        }
-
-        .lang-btn {
-            padding: 0.4rem 0.8rem;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 4px;
-            font-size: 0.8rem;
-            cursor: pointer;
-            transition: all 0.2s;
-            color: white;
-        }
-
-        .lang-btn.active {
-            background-color: #FFD700;
-            color: #1A2B6D;
-            border-color: #FFD700;
         }
 
         /* 主容器 */
@@ -882,6 +882,13 @@
             <p>您的海外安全守護者</p>
         </div>
         
+        <!-- 語言選擇器 - 移動到菜單頂部 -->
+        <div class="lang-selector">
+            <button class="lang-btn active" data-lang="zh-TW" onclick="switchLanguage('zh-hant')">繁</button>
+            <button class="lang-btn" data-lang="zh-CN" onclick="switchLanguage('zh-hans')">简</button>
+            <button class="lang-btn" data-lang="pt" onclick="switchLanguage('pt')">PT</button>
+        </div>
+        
         <div class="menu-content">
             <div class="menu-section">
                 <h3>特色活動</h3>
@@ -950,12 +957,6 @@
                     <span>活動日程</span>
                 </a>
             </div>
-        </div>
-        
-        <div class="lang-selector">
-            <button class="lang-btn active" data-lang="zh-TW" onclick="switchLanguage('zh-hant')">繁</button>
-            <button class="lang-btn" data-lang="zh-CN" onclick="switchLanguage('zh-hans')">简</button>
-            <button class="lang-btn" data-lang="pt" onclick="switchLanguage('pt')">PT</button>
         </div>
     </aside>
 
@@ -1105,9 +1106,10 @@
 
     <script>
         // ==================== 语言映射表 ====================
+        // 根据页面連結.xlsx更新映射表
         const translationMap = {
             // 繁体页面 (zh-hant) 为基准
-            "index_zh-hant.html": {
+            "index.html": {
                 "zh-hans": "index_zh-hans.html",
                 "pt": "index_pt.html"
             },
@@ -1162,7 +1164,7 @@
             
             // 简体页面 (zh-hans) 为基准
             "index_zh-hans.html": {
-                "zh-hant": "index_zh-hant.html",
+                "zh-hant": "index.html",
                 "pt": "index_pt.html"
             },
             "emergency_zh-hans.html": {
@@ -1216,7 +1218,7 @@
             
             // 葡文页面 (pt) 为基准
             "index_pt.html": {
-                "zh-hant": "index_zh-hant.html",
+                "zh-hant": "index.html",
                 "zh-hans": "index_zh-hans.html"
             },
             "emergency_pt.html": {
@@ -1651,7 +1653,7 @@
                 {"flagCode":"FJ","country":"Fiji","GlobalPeaceIndex_2025":null,"SafestCountriesIndexViaTravelSafe":70,"RiskLevelByCountryViaTravelSafe":"Low","SafestCountriesRankUSNews_2024":null},
                 {"flagCode":"BT","country":"Bhutan","GlobalPeaceIndex_2025":1.54,"SafestCountriesIndexViaTravelSafe":70,"RiskLevelByCountryViaTravelSafe":"Low","SafestCountriesRankUSNews_2024":null},
                 {"flagCode":"LU","country":"Luxembourg","GlobalPeaceIndex_2025":null,"SafestCountriesIndexViaTravelSafe":74,"RiskLevelByCountryViaTravelSafe":"Low","SafestCountriesRankUSNews_2024":14},
-                {"flagCode":"ME","country":"Montenegro","GlobalPeaceIndex_2025":1.69,"SafestCountriesIndexViaTravelSafe":70,"RiskLevelByCountryViaTravelSafe":"Low","SafestCountriesRankUSNews_2024":null},
+                {"flagCode":"ME","country":"Montenegro","GlobalPeaceIndex_2025":1.69,"SafestCountriesIndexViaTravelSafe":70,"RiskLevelByCountryViaTravelSafe":"Low","SafestCompaniesRankUSNews_2024":null},
                 {"flagCode":"MT","country":"Malta","GlobalPeaceIndex_2025":null,"SafestCountriesIndexViaTravelSafe":78,"RiskLevelByCountryViaTravelSafe":"Low","SafestCountriesRankUSNews_2024":null},
                 {"flagCode":"MV","country":"Maldives","GlobalPeaceIndex_2025":null,"SafestCountriesIndexViaTravelSafe":46,"RiskLevelByCountryViaTravelSafe":"Low","SafestCountriesRankUSNews_2024":null},
                 {"flagCode":"BN","country":"Brunei","GlobalPeaceIndex_2025":null,"SafestCountriesIndexViaTravelSafe":80,"RiskLevelByCountryViaTravelSafe":"Low","SafestCountriesRankUSNews_2024":null},
@@ -1778,7 +1780,7 @@
                 }
             });
 
-            // ==================== 修改：语言按钮事件监听器 ====================
+            // ==================== 语言按钮事件监听器 ====================
             // 添加语言按钮高亮（显示当前语言）
             function highlightCurrentLanguage() {
                 const currentPath = window.location.pathname;
@@ -1788,7 +1790,7 @@
                 langButtons.forEach(btn => btn.classList.remove('active'));
                 
                 // 根据当前文件名确定语言并高亮对应按钮
-                if (currentFileName.includes('_zh-hant.html')) {
+                if (currentFileName.includes('_zh-hant.html') || currentFileName === 'index.html') {
                     const zhTwBtn = document.querySelector('.lang-btn[data-lang="zh-TW"]');
                     if (zhTwBtn) zhTwBtn.classList.add('active');
                 } else if (currentFileName.includes('_zh-hans.html')) {
