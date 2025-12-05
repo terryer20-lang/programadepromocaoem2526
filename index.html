@@ -724,7 +724,7 @@
             z-index: 10;
             backdrop-filter: blur(5px);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            transform: translateY(-100px); /* 初始位置在上方 */
+            transform: translateY(100px); /* 初始位置在下方 */
             opacity: 0;
             transition: all 0.8s ease-out;
             pointer-events: auto; /* 确保可以点击 */
@@ -1338,7 +1338,7 @@
                 noData: '#666'        // 灰色 - 無數據
             };
             
-            // 國家數據 (從原CSV轉換)
+            // 國家數據 (從原CSV轉換) - 修正了一處拼寫錯誤
             const countryData = [
                 {"flagCode":"PK","country":"Pakistan","GlobalPeaceIndex_2025":2.8,"SafestCountriesIndexViaTravelSafe":26,"RiskLevelByCountryViaTravelSafe":"High","SafestCountriesRankUSNews_2024":null},
                 {"flagCode":"RU","country":"Russia","GlobalPeaceIndex_2025":3.44,"SafestCountriesIndexViaTravelSafe":34,"RiskLevelByCountryViaTravelSafe":"High","SafestCountriesRankUSNews_2024":80},
@@ -1355,7 +1355,7 @@
                 {"flagCode":"CM","country":"Cameroon","GlobalPeaceIndex_2025":2.68,"SafestCountriesIndexViaTravelSafe":36,"RiskLevelByCountryViaTravelSafe":"High","SafestCountriesRankUSNews_2024":84},
                 {"flagCode":"VE","country":"Venezuela","GlobalPeaceIndex_2025":2.69,"SafestCountriesIndexViaTravelSafe":33,"RiskLevelByCountryViaTravelSafe":"High","SafestCountriesRankUSNews_2024":null},
                 {"flagCode":"NE","country":"Niger","GlobalPeaceIndex_2025":2.76,"SafestCountriesIndexViaTravelSafe":37,"RiskLevelByCountryViaTravelSafe":"High","SafestCountriesRankUSNews_2024":null},
-                {"flagCode":"KP","country":"North Korea","GlobalPeaceIndex_2025":2.91,"SafestCountriesIndexViaTravelSafe":21,"RiskLevelByCountryViaTravelSafe":"High","SafestCompaniesRankUSNews_2024":null},
+                {"flagCode":"KP","country":"North Korea","GlobalPeaceIndex_2025":2.91,"SafestCountriesIndexViaTravelSafe":21,"RiskLevelByCountryViaTravelSafe":"High","SafestCountriesRankUSNews_2024":null}, // 修正了這裡的拼寫錯誤
                 {"flagCode":"SY","country":"Syria","GlobalPeaceIndex_2025":3.18,"SafestCountriesIndexViaTravelSafe":10,"RiskLevelByCountryViaTravelSafe":"High","SafestCountriesRankUSNews_2024":null},
                 {"flagCode":"ML","country":"Mali","GlobalPeaceIndex_2025":3.06,"SafestCountriesIndexViaTravelSafe":31,"RiskLevelByCountryViaTravelSafe":"High","SafestCountriesRankUSNews_2024":null},
                 {"flagCode":"TD","country":"Chad","GlobalPeaceIndex_2025":2.59,"SafestCountriesIndexViaTravelSafe":32,"RiskLevelByCountryViaTravelSafe":"High","SafestCountriesRankUSNews_2024":null},
@@ -1718,7 +1718,7 @@
                     statsPanel.classList.add('visible');
                 }, 300);
                 
-                // 顯示資料來源（從上向下飄動）
+                // 顯示資料來源（從下向上飄動）
                 setTimeout(() => {
                     dataSource.classList.add('visible');
                 }, 500);
