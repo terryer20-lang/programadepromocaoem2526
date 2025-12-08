@@ -1989,7 +1989,349 @@
                     .attr("stroke-dasharray", "2,2");
                 
                 // 載入地圖數據
-                d3.json('https://unpkg.com/world-atlas@2/countries-110m.json')
+                <!DOCTYPE html>
+                <html lang="zh-TW">
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>全球安全指數地圖 - 領事保護與居民權利</title>
+                    <!-- 引入 D3.js 和 TopoJSON -->
+                    <script src="https://d3js.org/d3.v7.min.js"></script>
+                    <script src="https://unpkg.com/topojson-client@3"></script>
+                    <style>
+                        /* 所有CSS樣式保持不變 */
+                        /* ... 您原有的所有CSS代碼 ... */
+                    </style>
+                </head>
+                <body>
+                    <!-- HTML結構保持不變 -->
+                    <!-- ... 您原有的所有HTML代碼 ... -->
+                
+                    <script>
+                        // ==================== 數據載入器 ====================
+                        class MapDataLoader {
+                            constructor() {
+                                this.localPath = 'data/countries-110m.json';
+                                this.remoteSources = [
+                                    'https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-110m.json',
+                                    'https://raw.githubusercontent.com/topojson/world-atlas/master/countries-110m.json',
+                                    'https://unpkg.com/world-atlas@2/countries-110m.json'
+                                ];
+                            }
+                            
+                            async load() {
+                                console.log('🌍 開始載入地圖數據...');
+                                
+                                // 1. 檢查本地文件
+                                const localData = await this.tryLocalFile();
+                                if (localData) return localData;
+                                
+                                // 2. 檢查sessionStorage緩存
+                                const cachedData = this.getFromCache();
+                                if (cachedData) return cachedData;
+                                
+                                // 3. 嘗試遠程源
+                                const remoteData = await this.tryRemoteSources();
+                                if (remoteData) {
+                                    // 緩存到sessionStorage
+                                    this.cacheData(remoteData);
+                                    return remoteData;
+                                }
+                                
+                                // 4. 所有來源都失敗
+                                throw new Error('無法載入任何地圖數據源');
+                            }
+                            
+                            async tryLocalFile() {
+                                try {
+                                    const response = await fetch(this.localPath);
+                                    if (response.ok) {
+                                        const data = await response.json();
+                                        console.log('✓ 從本地文件載入成功');
+                                        return data;
+                                    }
+                                } catch (error) {
+                                    console.warn('本地文件載入失敗:', error.message);
+                                }
+                                return null;
+                            }
+                            
+                            getFromCache() {
+                                try {
+                                    const cached = sessionStorage.getItem('world-map-data');
+                                    if (cached) {
+                                        const data = JSON.parse(cached);
+                                        console.log('✓ 從緩存載入成功');
+                                        return data;
+                                    }
+                                } catch (error) {
+                                    console.warn('緩存讀取失敗:', error);
+                                }
+                                return null;
+                            }
+                            
+                            cacheData(data) {
+                                try {
+                                    sessionStorage.setItem('world-map-data', JSON.stringify(data));
+                                    console.log('✓ 數據已緩存到sessionStorage');
+                                } catch (error) {
+                                    console.warn('緩存保存失敗:', error);
+                                }
+                            }
+                            
+                            async tryRemoteSources() {
+                                for (let i = 0; i < this.remoteSources.length; i++) {
+                                    try {
+                                        const response = await fetch(this.remoteSources[i], {
+                                            signal: AbortSignal.timeout(10000) // 10秒超時
+                                        });
+                                        
+                                        if (response.ok) {
+                                            const data = await response.json();
+                                            console.log(`✓ 從遠程源 ${i+1} 載入成功`);
+                                            return data;
+                                        }
+                                    } catch (error) {
+                                        console.warn(`遠程源 ${i+1} 載入失敗:`, error.message);
+                                    }
+                                }
+                                return null;
+                            }
+                        }
+                        
+                        // ==================== 語言映射表（保持不變） ====================
+                        const translationMap = {
+                            // ... 您原有的語言映射表 ...
+                        };
+                        
+                        // ==================== 主初始化函數 ====================
+                        document.addEventListener('DOMContentLoaded', function() {
+                            // ... 您原有的初始化代碼 ...
+                            
+                            // ==================== 修改initEarth函數 ====================
+                            async function initEarth() {
+                                const container = document.getElementById('globe-container');
+                                width = container.clientWidth;
+                                height = container.clientHeight;
+                                
+                                svg = d3.select('#globe')
+                                    .attr('width', width)
+                                    .attr('height', height);
+                                
+                                // 設置投影
+                                projection = d3.geoOrthographic()
+                                    .scale(Math.min(width, height) / 2.5)
+                                    .translate([width / 2, height / 2])
+                                    .rotate([-30, -20, 0])
+                                    .precision(0.1);
+                                
+                                path = d3.geoPath(projection);
+                                
+                                // 創建群組
+                                globeGroup = svg.append('g');
+                                
+                                // 繪製經緯線網格
+                                const graticule = d3.geoGraticule();
+                                globeGroup.append("path")
+                                    .datum(graticule)
+                                    .attr("class", "graticule")
+                                    .attr("d", path)
+                                    .attr("fill", "none")
+                                    .attr("stroke", "rgba(255, 255, 255, 0.2)")
+                                    .attr("stroke-width", 0.5)
+                                    .attr("stroke-dasharray", "2,2");
+                                
+                                // 使用新的數據載入器
+                                const dataLoader = new MapDataLoader();
+                                
+                                try {
+                                    const worldData = await dataLoader.load();
+                                    
+                                    // 隱藏載入提示
+                                    setTimeout(() => {
+                                        earthLoading.style.opacity = '0';
+                                        setTimeout(() => {
+                                            earthLoading.style.display = 'none';
+                                            
+                                            // 開始快速旋轉動畫
+                                            let fastRotationTime = 0;
+                                            const fastRotationSpeed = 6.0;
+                                            
+                                            function fastRotate() {
+                                                if (fastRotationTime < 1000) {
+                                                    const rotate = projection.rotate();
+                                                    projection.rotate([rotate[0] + fastRotationSpeed, rotate[1], rotate[2]]);
+                                                    
+                                                    if (countryPaths) {
+                                                        countryPaths.attr("d", path);
+                                                        d3.select(".graticule").attr("d", path);
+                                                        d3.select(".sphere-outline").attr("d", path);
+                                                    }
+                                                    
+                                                    fastRotationTime += 16;
+                                                    requestAnimationFrame(fastRotate);
+                                                } else {
+                                                    initialRotationComplete = true;
+                                                    showInterfaceElements();
+                                                    autoRotateAnimation();
+                                                }
+                                            }
+                                            
+                                            fastRotate();
+                                            
+                                        }, 500);
+                                    }, 1000);
+                                    
+                                    // 處理和渲染地圖
+                                    const countries = topojson.feature(worldData, worldData.objects.countries).features;
+                                    
+                                    // 繪製國家
+                                    countryPaths = globeGroup.selectAll(".country")
+                                        .data(countries)
+                                        .enter().append("path")
+                                        .attr("class", "country")
+                                        .attr("d", path)
+                                        .attr("fill", d => {
+                                            const countryName = d.properties.name;
+                                            const mappedName = countryNameMapping[countryName] || countryName;
+                                            const countryInfo = countryDataMap[mappedName];
+                                            
+                                            if (!countryInfo) return colors.noData;
+                                            
+                                            const riskLevel = countryInfo.RiskLevelByCountryViaTravelSafe;
+                                            if (!riskLevel) return colors.noData;
+                                            
+                                            switch(riskLevel.toLowerCase()) {
+                                                case 'low': return colors.safe;
+                                                case 'medium': return colors.medium;
+                                                case 'high': return colors.risk;
+                                                default: return colors.noData;
+                                            }
+                                        })
+                                        .attr("stroke", "#fff")
+                                        .attr("stroke-width", 0.3)
+                                        .attr("data-country", d => d.properties.name)
+                                        .attr("data-risk-level", d => {
+                                            const countryName = d.properties.name;
+                                            const mappedName = countryNameMapping[countryName] || countryName;
+                                            const countryInfo = countryDataMap[mappedName];
+                                            return countryInfo ? countryInfo.RiskLevelByCountryViaTravelSafe : 'noData';
+                                        })
+                                        .style("cursor", "pointer")
+                                        .style("opacity", 1)
+                                        .on("mouseover", function(event, d) {
+                                            // ... 保持原有的mouseover事件 ...
+                                        })
+                                        .on("mouseout", function() {
+                                            // ... 保持原有的mouseout事件 ...
+                                        })
+                                        .on("click", function(event, d) {
+                                            // ... 保持原有的click事件 ...
+                                        });
+                                    
+                                    // 繪製地球外輪廓
+                                    globeGroup.append("path")
+                                        .datum({type: "Sphere"})
+                                        .attr("class", "sphere-outline")
+                                        .attr("d", path)
+                                        .attr("fill", "none")
+                                        .attr("stroke", "rgba(255, 255, 255, 0.3)")
+                                        .attr("stroke-width", 1);
+                                    
+                                    // 繪製透明的球體用於拖動
+                                    globeGroup.append("path")
+                                        .datum({type: "Sphere"})
+                                        .attr("class", "globe-drag-area")
+                                        .attr("d", path)
+                                        .attr("fill", "transparent")
+                                        .style("cursor", "grab");
+                                    
+                                    // 計算並顯示統計數據
+                                    calculateStatistics();
+                                    
+                                } catch (error) {
+                                    console.error('地圖載入失敗:', error);
+                                    
+                                    // 顯示錯誤信息
+                                    earthLoading.innerHTML = `
+                                        <div class="loading-spinner" style="border-top-color: #e74c3c;"></div>
+                                        <div style="color: #e74c3c; margin-bottom: 1rem;">地圖載入失敗</div>
+                                        <div style="font-size: 0.9rem; margin-bottom: 0.5rem;">
+                                            錯誤: ${error.message}
+                                        </div>
+                                        <button onclick="window.location.reload()" style="
+                                            background: #f6d52a;
+                                            color: #000;
+                                            border: none;
+                                            padding: 0.5rem 1rem;
+                                            border-radius: 4px;
+                                            cursor: pointer;
+                                            margin-top: 1rem;
+                                        ">
+                                            重新載入頁面
+                                        </button>
+                                    `;
+                                    
+                                    // 可選：創建簡單的備用地圖
+                                    createFallbackMap();
+                                }
+                            }
+                            
+                            // ==================== 備用地圖函數 ====================
+                            function createFallbackMap() {
+                                console.log('創建備用地圖...');
+                                
+                                const container = document.getElementById('globe-container');
+                                const svg = d3.select('#globe');
+                                const width = container.clientWidth;
+                                const height = container.clientHeight;
+                                const centerX = width / 2;
+                                const centerY = height / 2;
+                                const radius = Math.min(width, height) / 3;
+                                
+                                // 清除現有內容
+                                svg.selectAll('*').remove();
+                                
+                                // 創建簡單的地球
+                                svg.append('circle')
+                                    .attr('cx', centerX)
+                                    .attr('cy', centerY)
+                                    .attr('r', radius)
+                                    .attr('fill', 'radial-gradient(circle at 30% 30%, #1A2B6D, #0a0f2e)')
+                                    .attr('stroke', '#4a90e2')
+                                    .attr('stroke-width', 2);
+                                
+                                // 添加提示文字
+                                svg.append('text')
+                                    .attr('x', centerX)
+                                    .attr('y', centerY - 50)
+                                    .attr('text-anchor', 'middle')
+                                    .attr('fill', '#FFD700')
+                                    .attr('font-size', '16px')
+                                    .text('地圖載入失敗');
+                                
+                                svg.append('text')
+                                    .attr('x', centerX)
+                                    .attr('y', centerY)
+                                    .attr('text-anchor', 'middle')
+                                    .attr('fill', '#aaa')
+                                    .attr('font-size', '14px')
+                                    .text('請檢查網絡連接或聯繫管理員');
+                                
+                                svg.append('text')
+                                    .attr('x', centerX)
+                                    .attr('y', centerY + 50)
+                                    .attr('text-anchor', 'middle')
+                                    .attr('fill', '#888')
+                                    .attr('font-size', '12px')
+                                    .text('數據文件路徑: data/countries-110m.json');
+                            }
+                            
+                            // 其餘代碼保持不變...
+                        });
+                    </script>
+                </body>
+                </html>
                     .then(worldData => {
                         // 隱藏載入提示
                         setTimeout(() => {
