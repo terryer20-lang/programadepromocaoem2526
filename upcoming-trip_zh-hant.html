@@ -1,0 +1,1724 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我即將出國專區 - 出國前準備指南</title>
+    <!-- 引入 D3.js 和 TopoJSON -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://unpkg.com/topojson-client@3"></script>
+    <style>
+        /* 基礎重置與移動優先樣式 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            font-size: 16px;
+            scroll-behavior: smooth;
+            height: 100%;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft JhengHei", sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(180deg, #0a0f2e 0%, #1A2B6D 100%);
+            min-height: 100vh;
+        }
+
+        /* 觸控目標至少44px */
+        button, 
+        a, 
+        .menu-toggle,
+        .btn,
+        .lang-btn,
+        .menu-item,
+        .stat-item {
+            min-height: 44px;
+            min-width: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* 導航欄 - 更新背景為hero模板的漸變，初始隱藏並在上方 */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 1000;
+            padding: 0.5rem 1rem;
+            background: linear-gradient(135deg, rgba(26, 43, 109, 0.95) 0%, rgba(213, 43, 30, 0.95) 100%);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+            transition: transform 0.8s ease-out, opacity 0.8s ease-out;
+            transform: translateY(-100%); /* 初始位置：在上方不可見 */
+            opacity: 0;
+            height: 60px;
+        }
+
+        .header.visible {
+            transform: translateY(0); /* 最終位置：在頂部可見 */
+            opacity: 1;
+        }
+
+        .header.hidden {
+            transform: translateY(-100%);
+        }
+
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 100%;
+        }
+
+        .logo {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #FFD700;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .menu-toggle {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #FFD700;
+            padding: 0.5rem;
+            z-index: 1001;
+        }
+
+        /* 側邊菜單 - 更新背景為hero模板的漸變 */
+        .side-menu {
+            position: fixed;
+            top: 0;
+            right: -100%;
+            width: 85%;
+            max-width: 400px;
+            height: 100vh;
+            background: linear-gradient(135deg, #1A2B6D 0%, #D52B1E 100%);
+            box-shadow: -5px 0 25px rgba(0, 0, 0, 0.1);
+            transition: right 0.4s ease-in-out;
+            z-index: 1002;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .side-menu.active {
+            right: 0;
+        }
+
+        .menu-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s;
+            z-index: 1001;
+        }
+
+        .menu-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .menu-header {
+            padding: 1.2rem;
+            background: rgba(0, 0, 0, 0.2);
+            color: white;
+        }
+
+        .menu-header h2 {
+            font-size: 1.2rem;
+            margin-bottom: 0.3rem;
+            color: #FFD700;
+        }
+
+        .menu-header p {
+            opacity: 0.9;
+            font-size: 0.8rem;
+        }
+
+        /* 語言選擇器 - 移動到菜單頂部 */
+        .lang-selector {
+            padding: 1rem;
+            background-color: rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .lang-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: white;
+        }
+
+        .lang-btn.active {
+            background-color: #f6d52a;
+            color: #000000;
+            border-color: #f6d52a;
+        }
+
+        .menu-content {
+            flex: 1;
+            padding: 1.2rem;
+        }
+
+        .menu-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .menu-section h3 {
+            font-size: 1rem;
+            color: #FFD700;
+            margin-bottom: 0.8rem;
+            padding-bottom: 0.3rem;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            padding: 0.6rem 0;
+            color: white;
+            text-decoration: none;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .menu-item:last-child {
+            border-bottom: none;
+        }
+
+        .menu-item:hover {
+            color: #FFD700;
+            padding-left: 0.5rem;
+        }
+
+        .menu-item-icon {
+            width: 25px;
+            text-align: center;
+            margin-right: 0.6rem;
+            font-size: 1rem;
+        }
+
+        /* 主容器 */
+        .main-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 地球容器 - 全畫面作為背景 */
+        .earth-section {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            background: linear-gradient(to bottom, #0a0f2e 0%, #1A2B6D 100%);
+            z-index: -1;
+        }
+
+        #globe-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #globe {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* 內容區域 - 在背景上方 */
+        .content-section {
+            position: relative;
+            z-index: 10;
+            margin-top: 80px;
+            padding: 2rem 1.5rem;
+            color: white;
+            min-height: calc(100vh - 60px);
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.8s ease-out 0.3s, transform 0.8s ease-out 0.3s;
+        }
+
+        .content-section.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* 頁面標題 */
+        .page-title {
+            text-align: center;
+            font-size: 2.2rem;
+            margin-bottom: 2rem;
+            color: #FFD700;
+            position: relative;
+            padding-bottom: 1rem;
+        }
+
+        .page-title:after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 3px;
+            background-color: #D52B1E;
+        }
+
+        /* 內容卡片 */
+        .content-card {
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 12px;
+            padding: 2rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 2rem;
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .content-card h2 {
+            font-size: 1.8rem;
+            color: #FFD700;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .content-card h3 {
+            font-size: 1.4rem;
+            color: #FFD700;
+            margin: 1.5rem 0 1rem;
+        }
+
+        .content-card p {
+            font-size: 1.1rem;
+            line-height: 1.7;
+            margin-bottom: 1rem;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .content-card ul, .content-card ol {
+            padding-left: 2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .content-card li {
+            font-size: 1.1rem;
+            line-height: 1.7;
+            margin-bottom: 0.5rem;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        /* 功能區塊網格 */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .feature-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .feature-card h4 {
+            font-size: 1.3rem;
+            color: #FFD700;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .feature-card p {
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.8);
+            line-height: 1.6;
+        }
+
+        /* 檢查清單樣式 */
+        .checklist-container {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border: 1px solid rgba(255, 215, 0, 0.2);
+        }
+
+        .checklist-item {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 1.2rem;
+            padding-bottom: 1.2rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .checklist-item:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+
+        .checklist-checkbox {
+            min-width: 24px;
+            height: 24px;
+            border: 2px solid #FFD700;
+            border-radius: 4px;
+            margin-right: 1rem;
+            margin-top: 0.2rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .checklist-checkbox.checked {
+            background-color: #FFD700;
+        }
+
+        .checklist-checkbox.checked:after {
+            content: "✓";
+            color: #1A2B6D;
+            font-weight: bold;
+        }
+
+        .checklist-content h5 {
+            font-size: 1.1rem;
+            color: #FFD700;
+            margin-bottom: 0.3rem;
+        }
+
+        .checklist-content p {
+            font-size: 0.95rem;
+            color: rgba(255, 255, 255, 0.8);
+            line-height: 1.5;
+        }
+
+        /* 倒數計時器 */
+        .countdown-container {
+            background: linear-gradient(135deg, #1A2B6D 0%, #D52B1E 100%);
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            margin: 2rem 0;
+        }
+
+        .countdown-title {
+            font-size: 1.5rem;
+            color: #FFD700;
+            margin-bottom: 1.5rem;
+        }
+
+        .countdown-display {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .countdown-unit {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 70px;
+        }
+
+        .countdown-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: white;
+            line-height: 1;
+            margin-bottom: 0.3rem;
+        }
+
+        .countdown-label {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        /* 旅行清單類別 */
+        .travel-category {
+            display: inline-block;
+            background: linear-gradient(135deg, #1A2B6D 0%, #D52B1E 100%);
+            color: white;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            margin: 0.3rem 0.5rem 0.3rem 0;
+        }
+
+        /* 提示框 */
+        .info-box {
+            background: rgba(255, 215, 0, 0.1);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .info-box h4 {
+            color: #FFD700;
+            font-size: 1.3rem;
+            margin-bottom: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .info-box p {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 1rem;
+        }
+
+        /* 按鈕樣式 */
+        .action-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #1A2B6D 0%, #D52B1E 100%);
+            color: white;
+            padding: 0.8rem 1.5rem;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1rem;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 1rem;
+        }
+
+        .action-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        /* 頁腳 - 在第三區塊下面 */
+        #footer {
+            background-color: rgba(0, 0, 0, 0.8);
+            color: #ddd;
+            position: relative;
+            z-index: 20;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            transform: translateY(50px);
+            opacity: 0;
+            transition: transform 0.8s ease-out, opacity 0.8s ease-out;
+            transition-delay: 0.6s;
+        }
+
+        #footer.visible {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .footer-content {
+            padding: 3rem 1.5rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .footer-section {
+            margin-bottom: 2.5rem;
+        }
+
+        .footer-section h3 {
+            color: #FFD700;
+            font-size: 1.3rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .footer-links {
+            list-style: none;
+        }
+
+        .footer-links li {
+            margin-bottom: 0.8rem;
+        }
+
+        .footer-links a {
+            color: #ddd;
+            text-decoration: none;
+            font-size: 0.8rem;
+            transition: color 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            white-space: nowrap;
+        }
+
+        .footer-links a:hover {
+            color: #FFD700;
+        }
+
+        .footer-links a:before {
+            content: "›";
+            color: #FFD700;
+        }
+
+        .contact-text {
+            font-size: 0.95rem;
+            line-height: 1.7;
+            margin-bottom: 1.5rem;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .contact-email {
+            display: inline-block;
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 0.8rem 1.2rem;
+            border-radius: 4px;
+            color: #FFD700;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: background-color 0.2s;
+        }
+
+        .contact-email:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .copyright {
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 1.5rem;
+            text-align: center;
+            font-size: 0.9rem;
+            color: #aaa;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* 地球載入提示 */
+        .earth-loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            z-index: 2;
+            text-align: center;
+            font-size: 1.2rem;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 2rem;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            opacity: 0;
+            transition: opacity 0.5s ease-out;
+        }
+
+        .earth-loading.visible {
+            opacity: 1;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #FFD700;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* 輔助類 */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            border: 0;
+        }
+
+        .emergency-badge {
+            display: inline-block;
+            background-color: #D52B1E;
+            color: white;
+            font-size: 0.8rem;
+            padding: 0.2rem 0.6rem;
+            border-radius: 4px;
+            margin-left: 0.5rem;
+            font-weight: bold;
+        }
+
+        /* 提示框 */
+        .tooltip {
+            position: absolute;
+            padding: 0.75rem 1rem;
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            pointer-events: none;
+            z-index: 100;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            max-width: 250px;
+            display: none;
+        }
+
+        /* 暫無內容提示 */
+        .placeholder-content {
+            text-align: center;
+            padding: 3rem;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 12px;
+            border: 2px dashed rgba(255, 215, 0, 0.3);
+            margin: 2rem 0;
+        }
+
+        .placeholder-content h3 {
+            color: #FFD700;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .placeholder-content p {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 1.1rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* 旅行目的地標示 */
+        .destination-tag {
+            display: inline-block;
+            background-color: rgba(255, 215, 0, 0.2);
+            color: #FFD700;
+            padding: 0.4rem 1rem;
+            border-radius: 20px;
+            font-size: 1rem;
+            font-weight: 600;
+            margin: 0.5rem 0;
+            border: 1px solid rgba(255, 215, 0, 0.3);
+        }
+
+        /* 進度條 */
+        .progress-container {
+            width: 100%;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 1.5rem 0;
+        }
+
+        .progress-bar {
+            height: 12px;
+            background: linear-gradient(90deg, #1A2B6D 0%, #D52B1E 100%);
+            border-radius: 10px;
+            transition: width 0.5s ease;
+        }
+
+        .progress-text {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        /* 桌面適配 (移動優先) */
+        @media (min-width: 768px) {
+            html {
+                font-size: 18px;
+            }
+
+            .logo {
+                font-size: 1.3rem;
+            }
+
+            .content-section {
+                padding: 3rem 2rem;
+                margin-top: 100px;
+            }
+
+            .page-title {
+                font-size: 2.5rem;
+            }
+
+            .content-card {
+                padding: 3rem;
+            }
+
+            .footer-content {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 3rem;
+            }
+            
+            .footer-links a {
+                font-size: 0.85rem;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .content-section {
+                padding: 4rem 3rem;
+            }
+
+            .page-title {
+                font-size: 2.8rem;
+            }
+            
+            .footer-content {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 4rem;
+            }
+        }
+
+        @media (max-width: 767px) {
+            .features-grid {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+
+            .placeholder-content {
+                padding: 2rem 1rem;
+            }
+            
+            .countdown-unit {
+                min-width: 60px;
+            }
+            
+            .countdown-value {
+                font-size: 2rem;
+            }
+            
+            .footer-links a {
+                font-size: 0.75rem;
+                white-space: normal;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 導航欄 - 初始隱藏 -->
+    <header class="header" id="header">
+        <nav class="navbar" aria-label="主導航">
+            <!-- 標題點擊後返回主頁 -->
+            <a href="index.html" class="logo">
+                <span>領事保護與居民權利</span>
+            </a>
+            <button class="menu-toggle" aria-expanded="false" aria-controls="side-menu">
+                ☰
+                <span class="sr-only">導航菜單</span>
+            </button>
+        </nav>
+    </header>
+
+    <!-- 側邊菜單遮罩 -->
+    <div class="menu-overlay" id="menu-overlay"></div>
+
+    <!-- 側邊菜單 -->
+    <aside class="side-menu" id="side-menu">
+        <div class="menu-header">
+            <h2>領事保護與居民權利</h2>
+            <p>您的海外安全守護者</p>
+        </div>
+        
+        <!-- 語言選擇器 -->
+        <div class="lang-selector">
+            <button class="lang-btn" data-lang="zh-hant" onclick="switchLanguage('zh-hant')">繁</button>
+            <button class="lang-btn" data-lang="zh-hans" onclick="switchLanguage('zh-hans')">简</button>
+            <button class="lang-btn" data-lang="pt" onclick="switchLanguage('pt')">PT</button>
+        </div>
+        
+        <div class="menu-content">
+            <div class="menu-section">
+                <h3>特色活動</h3>
+                <a href="weekly-challenge_zh-hant.html" class="menu-item">
+                    <span class="menu-item-icon">⭐</span>
+                    <span>「領保之星」每週主題挑戰賽</span>
+                </a>
+                <a href="safety-quiz_zh-hant.html" class="menu-item">
+                      <span class="menu-item-icon">📊</span>
+                     <span>「海外旅行安全指數」小測試</span>
+                </a>
+            </div>
+            
+            <div class="menu-section">
+                <h3>緊急服務</h3>
+                <a href="emergency_zh-hant.html" class="menu-item">
+                    <span class="menu-item-icon">🚨</span>
+                    <span>緊急求助專區 <span class="emergency-badge">24小時</span></span>
+                </a>
+                <a href="upcoming-trip_zh-hant.html" class="menu-item">
+                    <span class="menu-item-icon">✈️</span>
+                    <span>「我即將出國」專區</span>
+                </a>
+                <a href="overseas-difficulty_zh-hant.html" class="menu-item">
+                    <span class="menu-item-icon">🆘</span>
+                    <span>「我在海外遇到困難」專區</span>
+                </a>
+            </div>
+            
+            <div class="menu-section">
+                <h3>資訊資源</h3>
+                <a href="risk-map_zh-hant.html" class="menu-item">
+                    <span class="menu-item-icon">🗺️</span>
+                    <span>全球風險地圖</span>
+                </a>
+                <a href="podcast_zh-hant.html" class="menu-item">
+                    <span class="menu-item-icon">🎧</span>
+                    <span>播客集</span>
+                </a>
+                <a href="short-videos_zh-hant.html" class="menu-item">
+                    <span class="menu-item-icon">🎬</span>
+                    <span>一分鐘短片集</span>
+                </a>
+                <a href="resources_zh-hant.html" class="menu-item">
+                    <span class="menu-item-icon">📚</span>
+                    <span>資源專區</span>
+                </a>
+            </div>
+            
+            <div class="menu-section">
+                <h3>專區服務</h3>
+                <a href="emergency_zh-hant.html" class="menu-item">
+                    <span class="menu-item-icon">🚨</span>
+                    <span>緊急求助專區</span>
+                </a>
+                <a href="consular-protection_zh-hant.html" class="menu-item">
+                    <span class="menu-item-icon">🛡️</span>
+                    <span>領事保護與協助專區</span>
+                </a>
+                <a href="rights_zh-hant.html" class="menu-item">
+                    <span class="menu-item-icon">📋</span>
+                    <span>居民身份權利專區</span>
+                </a>
+                <a href="schedule_zh-hant.html" class="menu-item">
+                    <span class="menu-item-icon">📅</span>
+                    <span>活動日程</span>
+                </a>
+            </div>
+        </div>
+    </aside>
+
+    <!-- 主內容區域 -->
+    <main class="main-container">
+        <!-- 地球區域 - 全畫面背景 -->
+        <section class="earth-section">
+            <!-- 地球容器 -->
+            <div id="globe-container">
+                <svg id="globe"></svg>
+
+                <!-- 地球載入提示 -->
+                <div class="earth-loading" id="earth-loading">
+                    <div class="loading-spinner"></div>
+                    正在載入全球地圖...
+                </div>
+            </div>
+        </section>
+
+        <!-- 內容區域 -->
+        <section class="content-section" id="content-section">
+            <h1 class="page-title">我即將出國專區</h1>
+            
+            <!-- 主要內容卡片 -->
+            <div class="content-card">
+                <h2>出國前準備指南</h2>
+                <p>出國旅行或居住前做好充分準備，能讓您的海外旅程更加順利和安全。本專區為您提供全面的出國前準備指南，包括文件準備、健康檢查、保險購買、目的地資訊等重要事項。</p>
+                
+                <!-- 目的地設定 -->
+                <div class="info-box">
+                    <h4>✈️ 設定您的旅行目的地</h4>
+                    <p>請選擇您即將前往的國家或地區，我們將為您提供針對性的準備建議。</p>
+                    <div style="margin-top: 1rem;">
+                        <span class="destination-tag" id="destination-tag">未設定目的地</span>
+                    </div>
+                    <button class="action-button" onclick="openDestinationModal()" style="margin-top: 1rem;">設定目的地</button>
+                </div>
+                
+                <!-- 倒數計時器 -->
+                <div class="countdown-container">
+                    <div class="countdown-title">距離出發還有</div>
+                    <div class="countdown-display">
+                        <div class="countdown-unit">
+                            <div class="countdown-value" id="countdown-days">00</div>
+                            <div class="countdown-label">天</div>
+                        </div>
+                        <div class="countdown-unit">
+                            <div class="countdown-value" id="countdown-hours">00</div>
+                            <div class="countdown-label">小時</div>
+                        </div>
+                        <div class="countdown-unit">
+                            <div class="countdown-value" id="countdown-minutes">00</div>
+                            <div class="countdown-label">分鐘</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 準備進度 -->
+                <h3>出國準備進度</h3>
+                <div class="progress-container">
+                    <div class="progress-bar" id="progress-bar" style="width: 30%"></div>
+                </div>
+                <div class="progress-text">
+                    <span>準備進度</span>
+                    <span id="progress-percentage">30%</span>
+                </div>
+                
+                <h3>旅行準備類別</h3>
+                <div>
+                    <span class="travel-category">📋 文件準備</span>
+                    <span class="travel-category">💉 健康與疫苗</span>
+                    <span class="travel-category">💰 財務安排</span>
+                    <span class="travel-category">📱 通訊與網路</span>
+                    <span class="travel-category">🧳 行李打包</span>
+                    <span class="travel-category">🏠 住宿與交通</span>
+                    <span class="travel-category">🆘 緊急應對</span>
+                </div>
+                
+                <!-- 出國前檢查清單 -->
+                <h3>出國前檢查清單</h3>
+                <div class="checklist-container">
+                    <div class="checklist-item">
+                        <div class="checklist-checkbox" onclick="toggleCheckbox(this)"></div>
+                        <div class="checklist-content">
+                            <h5>護照與簽證</h5>
+                            <p>確認護照有效期至少6個月以上，辦理目的地國家所需簽證。</p>
+                        </div>
+                    </div>
+                    
+                    <div class="checklist-item">
+                        <div class="checklist-checkbox" onclick="toggleCheckbox(this)"></div>
+                        <div class="checklist-content">
+                            <h5>機票與住宿</h5>
+                            <p>確認機票訂位、列印電子機票，預訂住宿並列印確認單。</p>
+                        </div>
+                    </div>
+                    
+                    <div class="checklist-item">
+                        <div class="checklist-checkbox" onclick="toggleCheckbox(this)"></div>
+                        <div class="checklist-content">
+                            <h5>旅行保險</h5>
+                            <p>購買包含醫療、行李遺失和行程取消的綜合旅行保險。</p>
+                        </div>
+                    </div>
+                    
+                    <div class="checklist-item">
+                        <div class="checklist-checkbox" onclick="toggleCheckbox(this)"></div>
+                        <div class="checklist-content">
+                            <h5>疫苗與健康檢查</h5>
+                            <p>根據目的地要求接種必要疫苗，進行行前健康檢查。</p>
+                        </div>
+                    </div>
+                    
+                    <div class="checklist-item">
+                        <div class="checklist-checkbox" onclick="toggleCheckbox(this)"></div>
+                        <div class="checklist-content">
+                            <h5>財務準備</h5>
+                            <p>兌換當地貨幣、準備國際信用卡、告知銀行旅行計劃。</p>
+                        </div>
+                    </div>
+                    
+                    <div class="checklist-item">
+                        <div class="checklist-checkbox" onclick="toggleCheckbox(this)"></div>
+                        <div class="checklist-content">
+                            <h5>通訊安排</h5>
+                            <p>開通國際漫遊、購買當地SIM卡、下載必要通訊應用程式。</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <h4>📄 重要文件準備</h4>
+                        <p>護照、簽證、機票、住宿確認、旅行保險單、國際駕照、信用卡副本等重要文件準備與保管建議。</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <h4>🏥 健康與醫療準備</h4>
+                        <p>目的地疫情資訊、必要疫苗接種、個人藥物準備、旅行醫療包、當地醫療資源查詢。</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <h4>💰 財務與保險</h4>
+                        <p>貨幣兌換、國際支付方式、旅行保險選擇、緊急資金準備、防盜安全建議。</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <h4>📱 通訊與網路</h4>
+                        <p>國際漫遊方案、當地SIM卡、免費WiFi熱點、重要聯絡電話、離線地圖下載。</p>
+                    </div>
+                </div>
+                
+                <!-- 重要提醒 -->
+                <div class="info-box">
+                    <h4>⚠️ 重要提醒</h4>
+                    <p>出發前請務必查閱目的地國家/地區的最新入境規定，包括簽證要求、疫苗接種證明、檢疫規定等。建議提前至少一個月開始準備，並在出發前72小時再次確認所有事項。</p>
+                </div>
+                
+                <h3>使領館服務</h3>
+                <p>出發前，建議您：</p>
+                <ol>
+                    <li><strong>登記出行資訊</strong> - 通過中國領事服務網登記您的旅行計劃，以便使領館在緊急情況下提供協助</li>
+                    <li><strong>保存緊急聯絡方式</strong> - 記錄目的地中國使領館的地址、電話和緊急聯絡方式</li>
+                    <li><strong>了解領事保護服務</strong> - 了解在海外可獲得的領事保護與協助服務範圍</li>
+                    <li><strong>下載官方應用</strong> - 下載「外交部12308」手機應用程式，隨時獲取領事保護資訊</li>
+                </ol>
+                
+                <h3>相關資源</h3>
+                <p>以下資源可能對您有幫助：</p>
+                <ul>
+                    <li>中國領事服務網：cs.mfa.gov.cn</li>
+                    <li>外交部全球領事保護與服務應急熱線：+86-10-12308</li>
+                    <li>目的地國家入境事務官方網站</li>
+                    <li>國際旅行健康建議 (CDC/WHO)</li>
+                </ul>
+                
+                <!-- 行動按鈕 -->
+                <div style="display: flex; gap: 1rem; margin-top: 2rem; flex-wrap: wrap;">
+                    <a href="index.html" class="action-button">返回主頁</a>
+                    <a href="risk-map_zh-hant.html" class="action-button">查看全球風險地圖</a>
+                    <a href="emergency_zh-hant.html" class="action-button">緊急求助專區</a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 頁腳 -->
+    <footer id="footer" class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h3>相關連結</h3>
+                <ul class="footer-links">
+                    <li><a href="https://www.fmprc.gov.cn/web/" target="_blank">中華人民共和國外交部</a></li>
+                    <li><a href="https://portaldascomunidades.mne.gov.pt/pt/" target="_blank">葡萄牙共和國外交部</a></li>
+                    <li><a href="https://cs.mfa.gov.cn/" target="_blank">中國領事服務網</a></li>
+                    <li><a href="https://mo.ocmfa.gov.cn/chn/" target="_blank">中華人民共和國外交部駐澳門特別行政區特派員公署</a></li>
+                    <li><a href="https://www.gov.mo/zh-hant/" target="_blank">澳門特別行政區政府入口網站</a></li>
+                    <li><a href="https://www.dsi.gov.mo/index_cn.jsp" target="_blank">澳門特別行政區政府身份證明局</a></li>
+                    <li><a href="https://www.elctp.k12.edu.mo/elctp/" target="_blank">澳門中葡職業技術學校</a></li>
+                </ul>
+            </div>
+            
+            <div class="footer-section">
+                <h3>聯絡我們</h3>
+                <p class="contact-text">
+                    本網站由一群中學生自主開發，旨在增進公眾對領事保護、協助服務及居民身份權利的認識與關注。由於團隊成員學業繁忙，網站信息將不定期更新與維護，如有不便，敬請理解。
+                    <br><br>
+                    我們誠摯歡迎您對網站用戶界面提出寶貴意見，若發現信息有誤也歡迎指正。
+                </p>
+                <a href="mailto:infodoprogramaem2526@gmail.com" class="contact-email">infodoprogramaem2526@gmail.com</a>
+            </div>
+        </div>
+        
+        <div class="copyright">
+            © 2025-2026 中葡職業技術學校高三翻譯宣傳領事保護與協助和居民權利小組（Escudos de Quíron） 版權所有
+        </div>
+    </footer>
+
+    <!-- 提示框 -->
+    <div class="tooltip" id="tooltip"></div>
+
+    <!-- 目的地設定模態框 -->
+    <div id="destination-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center;">
+        <div style="background: #1A2B6D; padding: 2rem; border-radius: 12px; max-width: 500px; width: 90%;">
+            <h3 style="color: #FFD700; margin-bottom: 1.5rem;">設定您的旅行目的地</h3>
+            <p style="color: white; margin-bottom: 1.5rem;">請選擇或輸入您即將前往的國家或地區：</p>
+            <select id="destination-select" style="width: 100%; padding: 0.8rem; border-radius: 6px; margin-bottom: 1.5rem; background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.3);">
+                <option value="">請選擇目的地</option>
+                <option value="葡萄牙">葡萄牙</option>
+                <option value="日本">日本</option>
+                <option value="美國">美國</option>
+                <option value="澳大利亞">澳大利亞</option>
+                <option value="英國">英國</option>
+                <option value="法國">法國</option>
+                <option value="德國">德國</option>
+                <option value="泰國">泰國</option>
+                <option value="新加坡">新加坡</option>
+                <option value="其他">其他</option>
+            </select>
+            <input type="date" id="departure-date" style="width: 100%; padding: 0.8rem; border-radius: 6px; margin-bottom: 1.5rem; background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.3);">
+            <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                <button class="action-button" onclick="closeDestinationModal()" style="background: #666;">取消</button>
+                <button class="action-button" onclick="saveDestination()">儲存設定</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== 语言映射表 ====================
+        const translationMap = {
+            // 繁体页面 (zh-hant) 为基准
+            "index.html": {
+                "zh-hans": "index_zh-hans.html",
+                "pt": "index_pt.html"
+            },
+            "emergency_zh-hant.html": {
+                "zh-hans": "emergency_zh-hans.html",
+                "pt": "emergency_pt.html"
+            },
+            "upcoming-trip_zh-hant.html": {
+                "zh-hans": "upcoming-trip_zh-hans.html",
+                "pt": "upcoming-trip_pt.html"
+            },
+            "overseas-difficulty_zh-hant.html": {
+                "zh-hans": "overseas-difficulty_zh-hans.html",
+                "pt": "overseas-difficulty_pt.html"
+            },
+            "risk-map_zh-hant.html": {
+                "zh-hans": "risk-map_zh-hans.html",
+                "pt": "risk-map_pt.html"
+            },
+            "podcast_zh-hant.html": {
+                "zh-hans": "podcast_zh-hans.html",
+                "pt": "podcast_pt.html"
+            },
+            "short-videos_zh-hant.html": {
+                "zh-hans": "short-videos_zh-hans.html",
+                "pt": "short-videos_pt.html"
+            },
+            "resources_zh-hant.html": {
+                "zh-hans": "resources_zh-hans.html",
+                "pt": "resources_pt.html"
+            },
+            "consular-protection_zh-hant.html": {
+                "zh-hans": "consular-protection_zh-hans.html",
+                "pt": "consular-protection_pt.html"
+            },
+            "rights_zh-hant.html": {
+                "zh-hans": "rights_zh-hans.html",
+                "pt": "rights_pt.html"
+            },
+            "schedule_zh-hant.html": {
+                "zh-hans": "schedule_zh-hans.html",
+                "pt": "schedule_pt.html"
+            },
+            "weekly-challenge_zh-hant.html": {
+                "zh-hans": "weekly-challenge_zh-hans.html",
+                "pt": "weekly-challenge_pt.html"
+            },
+            "safety-quiz_zh-hant.html": {
+                "zh-hans": "safety-quiz_zh-hans.html",
+                "pt": "safety-quiz_pt.html"
+            }
+        };
+
+        // ==================== 语言切换函数 ====================
+        /**
+         * 根据当前页面和目标语言代码进行导航
+         * @param {string} targetLang - 目标语言代码 ('zh-hant', 'zh-hans', 'pt')
+         */
+        function switchLanguage(targetLang) {
+            // 获取当前激活的语言按钮
+            const activeButton = document.querySelector('.lang-btn.active');
+            
+            // 如果点击的按钮已经是激活状态，则直接返回，不执行任何操作
+            if (activeButton && activeButton.getAttribute('data-lang') === targetLang) {
+                console.log(`当前已是${targetLang}语言，无需切换`);
+                return;
+            }
+            
+            // 1. 获取当前页面的文件名
+            const currentPath = window.location.pathname;
+            const currentFileName = currentPath.substring(currentPath.lastIndexOf('/') + 1);
+            
+            console.log(`当前文件: ${currentFileName}, 目标语言: ${targetLang}`);
+            
+            // 2. 在映射表中查找目标链接
+            const currentLangLinks = translationMap[currentFileName];
+            
+            if (currentLangLinks && currentLangLinks[targetLang]) {
+                // 3. 构造完整的目标 URL
+                const targetFileName = currentLangLinks[targetLang];
+                
+                // 获取当前目录路径
+                let basePath = currentPath.substring(0, currentPath.lastIndexOf('/') + 1);
+                if (basePath === '/') basePath = ''; // 如果是在根目录
+                
+                const newUrl = basePath + targetFileName;
+                
+                console.log(`导航到: ${newUrl}`);
+                
+                // 4. 导航到目标页面
+                window.location.href = newUrl;
+            } else {
+                // 如果找不到对应链接
+                console.error(`找不到 ${currentFileName} 对应的 ${targetLang} 语言链接。`);
+                alert('抱歉，该页面的此语言版本暂时不可用。');
+            }
+        }
+
+        // ==================== 页面功能脚本 ====================
+        document.addEventListener('DOMContentLoaded', function() {
+            const header = document.getElementById('header');
+            const menuToggle = document.querySelector('.menu-toggle');
+            const sideMenu = document.getElementById('side-menu');
+            const menuOverlay = document.getElementById('menu-overlay');
+            const earthLoading = document.getElementById('earth-loading');
+            const contentSection = document.getElementById('content-section');
+            const langButtons = document.querySelectorAll('.lang-btn');
+            const footer = document.getElementById('footer');
+            
+            let lastScrollTop = 0;
+            let isMenuOpen = false;
+            
+            // 滚动监听变量
+            let isFooterVisible = false;
+            
+            // D3.js 变量
+            let width, height, svg, projection, path, globeGroup, countryPaths;
+            
+            // 自动旋转控制变量
+            let autoRotate = true;
+            let rotationSpeed = 0.1;
+            let animationId = null;
+            
+            // 页面状态
+            let isEarthLoaded = false;
+            
+            // 出国准备相关变量
+            let destination = localStorage.getItem('travelDestination') || '未設定目的地';
+            let departureDate = localStorage.getItem('departureDate') || '';
+            let checkedItems = JSON.parse(localStorage.getItem('checkedItems')) || [false, false, false, false, false, false];
+            
+            // 初始化页面时恢复状态
+            initTravelData();
+            
+            // 汉堡菜单切换功能
+            function toggleMenu() {
+                isMenuOpen = !isMenuOpen;
+                sideMenu.classList.toggle('active', isMenuOpen);
+                menuOverlay.classList.toggle('active', isMenuOpen);
+                menuToggle.setAttribute('aria-expanded', isMenuOpen);
+                document.body.style.overflow = isMenuOpen ? 'hidden' : '';
+            }
+
+            menuToggle.addEventListener('click', toggleMenu);
+            menuOverlay.addEventListener('click', toggleMenu);
+
+            // 关闭菜单当点击菜单内的链接
+            sideMenu.addEventListener('click', function(e) {
+                if (e.target.tagName === 'A') {
+                    toggleMenu();
+                }
+            });
+
+            // ==================== 语言按钮高亮逻辑 ====================
+            /**
+             * 根据当前页面自动高亮对应的语言按钮
+             */
+            function highlightCurrentLanguage() {
+                // 获取当前页面的文件名
+                const currentPath = window.location.pathname;
+                const currentFileName = currentPath.substring(currentPath.lastIndexOf('/') + 1);
+                
+                console.log(`当前文件名: ${currentFileName}`);
+                
+                // 移除所有按钮的active类
+                langButtons.forEach(btn => btn.classList.remove('active'));
+                
+                // 根据文件名判断当前语言
+                let currentLang = '';
+                
+                if (currentFileName.includes('_zh-hant.html') || currentFileName === 'index.html') {
+                    currentLang = 'zh-hant';
+                } else if (currentFileName.includes('_zh-hans.html')) {
+                    currentLang = 'zh-hans';
+                } else if (currentFileName.includes('_pt.html')) {
+                    currentLang = 'pt';
+                } else {
+                    // 默认情况下，假设是繁体中文
+                    currentLang = 'zh-hant';
+                }
+                
+                // 找到对应语言按钮并添加active类
+                const activeButton = document.querySelector(`.lang-btn[data-lang="${currentLang}"]`);
+                if (activeButton) {
+                    activeButton.classList.add('active');
+                    console.log(`高亮语言按钮: ${currentLang}`);
+                } else {
+                    console.warn(`找不到对应语言按钮: ${currentLang}`);
+                }
+            }
+            
+            // 页面加载时立即调用高亮函数
+            highlightCurrentLanguage();
+
+            // 滚动时隐藏/显示导航栏和显示动画
+            window.addEventListener('scroll', function() {
+                const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+                
+                // 隐藏/显示导航栏
+                if (!isMenuOpen) {
+                    if (scrollTop > lastScrollTop && scrollTop > 100) {
+                        header.classList.add('hidden');
+                    } else {
+                        header.classList.remove('hidden');
+                    }
+                }
+                
+                // 检查页脚是否进入视图
+                if (!isFooterVisible && scrollTop > window.innerHeight * 0.7) {
+                    footer.classList.add('visible');
+                    isFooterVisible = true;
+                }
+                
+                lastScrollTop = scrollTop;
+            });
+            
+            // 自动旋转动画
+            function autoRotateAnimation() {
+                // 始终自动旋转
+                const rotate = projection.rotate();
+                // 从右向左旋转（增加经度值）
+                projection.rotate([rotate[0] + rotationSpeed, rotate[1], rotate[2]]);
+                
+                // 更新所有路径
+                if (countryPaths) {
+                    countryPaths.attr("d", path);
+                    d3.select(".graticule").attr("d", path);
+                    d3.select(".sphere-outline").attr("d", path);
+                }
+                
+                // 继续动画循环
+                animationId = requestAnimationFrame(autoRotateAnimation);
+            }
+            
+            // 显示界面元素 - 从标题列从上下进入开始
+            function showInterfaceElements() {
+                // 显示地球加载提示
+                earthLoading.classList.add('visible');
+                
+                // 延迟后显示标题列（从上下进入）
+                setTimeout(() => {
+                    header.classList.add('visible');
+                }, 300);
+                
+                // 地球加载完成后显示内容区域和页脚
+                if (isEarthLoaded) {
+                    showContentAndFooter();
+                }
+            }
+            
+            // 显示内容区域和页脚
+            function showContentAndFooter() {
+                // 显示内容区域（淡入和上移动画）
+                setTimeout(() => {
+                    contentSection.classList.add('visible');
+                }, 500);
+                
+                // 显示页脚（从下往上淡入）
+                setTimeout(() => {
+                    footer.classList.add('visible');
+                }, 800);
+            }
+            
+            // 初始化D3地球（简化版，仅用于背景，缓慢自转）
+            function initEarth() {
+                const container = document.getElementById('globe-container');
+                width = container.clientWidth;
+                height = container.clientHeight;
+                
+                svg = d3.select('#globe')
+                    .attr('width', width)
+                    .attr('height', height);
+                
+                // 设置3D正射投影
+                projection = d3.geoOrthographic()
+                    .scale(Math.min(width, height) / 2.5)
+                    .translate([width / 2, height / 2])
+                    .rotate([-30, -20, 0]) // 固定初始视角
+                    .precision(0.1);
+                
+                path = d3.geoPath(projection);
+                
+                // 创建群组
+                globeGroup = svg.append('g');
+                
+                // 绘制经纬线网格
+                const graticule = d3.geoGraticule();
+                globeGroup.append("path")
+                    .datum(graticule)
+                    .attr("class", "graticule")
+                    .attr("d", path)
+                    .attr("fill", "none")
+                    .attr("stroke", "rgba(255, 255, 255, 0.1)")
+                    .attr("stroke-width", 0.3)
+                    .attr("stroke-dasharray", "2,2");
+                
+                // 加载地图数据
+                d3.json('https://unpkg.com/world-atlas@2/countries-110m.json')
+                    .then(worldData => {
+                        // 隐藏加载提示
+                        setTimeout(() => {
+                            earthLoading.style.opacity = '0';
+                            setTimeout(() => {
+                                earthLoading.style.display = 'none';
+                                earthLoading.classList.remove('visible');
+                                
+                                // 标记地球已加载
+                                isEarthLoaded = true;
+                                
+                                // 开始缓慢的自转动画
+                                autoRotateAnimation();
+                                
+                                // 如果标题列已显示，则显示内容区域和页脚
+                                if (header.classList.contains('visible')) {
+                                    showContentAndFooter();
+                                }
+                                
+                            }, 500);
+                        }, 800);
+                        
+                        const countries = topojson.feature(worldData, worldData.objects.countries).features;
+                        
+                        // 绘制国家 - 简化版，仅用于背景
+                        countryPaths = globeGroup.selectAll(".country")
+                            .data(countries)
+                            .enter().append("path")
+                            .attr("class", "country")
+                            .attr("d", path)
+                            .attr("fill", "rgba(255, 255, 255, 0.05)")
+                            .attr("stroke", "rgba(255, 255, 255, 0.1)")
+                            .attr("stroke-width", 0.2)
+                            .style("cursor", "default");
+                        
+                        // 绘制地球外轮廓
+                        const sphereOutline = globeGroup.append("path")
+                            .datum({type: "Sphere"})
+                            .attr("class", "sphere-outline")
+                            .attr("d", path)
+                            .attr("fill", "none")
+                            .attr("stroke", "rgba(255, 255, 255, 0.15)")
+                            .attr("stroke-width", 0.5);
+                        
+                    })
+                    .catch(err => {
+                        console.error("加载地图数据失败:", err);
+                        earthLoading.innerHTML = `
+                            <div style="color:#e74c3c;">加载地图数据失败</div>
+                            <div style="font-size:0.9rem; margin-top:0.5rem;">请检查网络连接后刷新页面</div>
+                        `;
+                        
+                        // 即使加载失败也标记为已加载并显示内容
+                        isEarthLoaded = true;
+                        if (header.classList.contains('visible')) {
+                            showContentAndFooter();
+                        }
+                    });
+                
+                // 响应式调整
+                window.addEventListener('resize', function() {
+                    width = container.clientWidth;
+                    height = container.clientHeight;
+                    
+                    svg.attr('width', width).attr('height', height);
+                    
+                    projection
+                        .scale(Math.min(width, height) / 2.5)
+                        .translate([width / 2, height / 2]);
+                    
+                    // 更新所有路径
+                    if (countryPaths) {
+                        countryPaths.attr("d", path);
+                        d3.select(".graticule").attr("d", path);
+                        d3.select(".sphere-outline").attr("d", path);
+                    }
+                });
+            }
+            
+            // ==================== 旅行准备功能 ====================
+            // 初始化旅行数据
+            function initTravelData() {
+                // 设置目的地标签
+                document.getElementById('destination-tag').textContent = destination;
+                
+                // 设置检查清单状态
+                const checkboxes = document.querySelectorAll('.checklist-checkbox');
+                checkboxes.forEach((checkbox, index) => {
+                    if (checkedItems[index]) {
+                        checkbox.classList.add('checked');
+                    }
+                });
+                
+                // 更新进度
+                updateProgress();
+                
+                // 启动倒计时
+                updateCountdown();
+                setInterval(updateCountdown, 60000); // 每分钟更新一次
+            }
+            
+            // 更新准备进度
+            function updateProgress() {
+                const checkedCount = checkedItems.filter(item => item).length;
+                const totalItems = checkedItems.length;
+                const percentage = Math.round((checkedCount / totalItems) * 100);
+                
+                document.getElementById('progress-bar').style.width = `${percentage}%`;
+                document.getElementById('progress-percentage').textContent = `${percentage}%`;
+            }
+            
+            // 切换复选框状态
+            window.toggleCheckbox = function(checkbox) {
+                checkbox.classList.toggle('checked');
+                
+                // 更新checkedItems数组
+                const index = Array.from(document.querySelectorAll('.checklist-checkbox')).indexOf(checkbox);
+                if (index !== -1) {
+                    checkedItems[index] = checkbox.classList.contains('checked');
+                    localStorage.setItem('checkedItems', JSON.stringify(checkedItems));
+                    updateProgress();
+                }
+            }
+            
+            // 更新倒计时
+            function updateCountdown() {
+                if (!departureDate) {
+                    document.getElementById('countdown-days').textContent = '--';
+                    document.getElementById('countdown-hours').textContent = '--';
+                    document.getElementById('countdown-minutes').textContent = '--';
+                    return;
+                }
+                
+                const now = new Date();
+                const departure = new Date(departureDate);
+                const timeDiff = departure - now;
+                
+                if (timeDiff <= 0) {
+                    document.getElementById('countdown-days').textContent = '00';
+                    document.getElementById('countdown-hours').textContent = '00';
+                    document.getElementById('countdown-minutes').textContent = '00';
+                    return;
+                }
+                
+                const days = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((timeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+                
+                document.getElementById('countdown-days').textContent = days.toString().padStart(2, '0');
+                document.getElementById('countdown-hours').textContent = hours.toString().padStart(2, '0');
+                document.getElementById('countdown-minutes').textContent = minutes.toString().padStart(2, '0');
+            }
+            
+            // 打开目的地设置模态框
+            window.openDestinationModal = function() {
+                const modal = document.getElementById('destination-modal');
+                modal.style.display = 'flex';
+                
+                // 设置选择框的值
+                const select = document.getElementById('destination-select');
+                if (destination !== '未設定目的地') {
+                    select.value = destination;
+                }
+                
+                // 设置日期输入框的值
+                const dateInput = document.getElementById('departure-date');
+                if (departureDate) {
+                    dateInput.value = departureDate;
+                } else {
+                    // 默认设置为两周后
+                    const defaultDate = new Date();
+                    defaultDate.setDate(defaultDate.getDate() + 14);
+                    dateInput.value = defaultDate.toISOString().split('T')[0];
+                }
+            }
+            
+            // 关闭目的地设置模态框
+            window.closeDestinationModal = function() {
+                document.getElementById('destination-modal').style.display = 'none';
+            }
+            
+            // 保存目的地设置
+            window.saveDestination = function() {
+                const select = document.getElementById('destination-select');
+                const dateInput = document.getElementById('departure-date');
+                
+                if (select.value) {
+                    destination = select.value;
+                    departureDate = dateInput.value;
+                    
+                    // 保存到localStorage
+                    localStorage.setItem('travelDestination', destination);
+                    localStorage.setItem('departureDate', departureDate);
+                    
+                    // 更新页面显示
+                    document.getElementById('destination-tag').textContent = destination;
+                    
+                    // 更新倒计时
+                    updateCountdown();
+                    
+                    // 关闭模态框
+                    closeDestinationModal();
+                    
+                    // 显示成功消息
+                    alert(`目的地已設定為：${destination}\n出發日期：${departureDate}`);
+                } else {
+                    alert('請選擇目的地');
+                }
+            }
+            
+            // 初始化页面
+            document.documentElement.lang = 'zh-TW';
+            
+            // 页面加载后开始初始化流程
+            window.addEventListener('load', function() {
+                // 立即开始显示界面元素（从标题列开始）
+                showInterfaceElements();
+                
+                // 初始化地球（缓慢自转背景）
+                setTimeout(initEarth, 500);
+            });
+            
+            // 如果地图加载失败的备选方案
+            setTimeout(function() {
+                if (earthLoading.style.display !== 'none') {
+                    earthLoading.innerHTML = "地图加载失败，显示背景图...<br><small>请检查网络连接</small>";
+                    
+                    // 标记地球已加载（失败状态）
+                    isEarthLoaded = true;
+                    if (header.classList.contains('visible')) {
+                        showContentAndFooter();
+                    }
+                }
+            }, 10000);
+        });
+    </script>
+</body>
+</html>
