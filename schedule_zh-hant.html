@@ -530,23 +530,47 @@
             background: rgba(255, 255, 255, 0.1);
         }
 
-        .calendar-day.active {
+        .calendar-day.today {
             background-color: rgba(255, 215, 0, 0.2);
             border: 1px solid #FFD700;
+            font-weight: bold;
         }
 
         .calendar-day.has-event {
-            background-color: rgba(213, 43, 30, 0.2);
+            position: relative;
         }
 
-        .calendar-day.has-event:after {
-            content: '';
+        /* 活動狀態圓點樣式 - 根據狀態分類 */
+        .event-dots {
             position: absolute;
-            bottom: 5px;
+            bottom: 4px;
+            display: flex;
+            justify-content: center;
+            gap: 2px;
+            width: 100%;
+        }
+
+        .event-dot {
             width: 6px;
             height: 6px;
             border-radius: 50%;
-            background-color: #FFD700;
+        }
+
+        .event-dot.upcoming {
+            background-color: #4CAF50; /* 綠色 - 即將舉行 */
+        }
+
+        .event-dot.ongoing {
+            background-color: #2196F3; /* 藍色 - 進行中 */
+        }
+
+        .event-dot.completed {
+            background-color: #9E9E9E; /* 灰色 - 已結束 */
+        }
+
+        .calendar-day.active {
+            background-color: rgba(213, 43, 30, 0.3);
+            border: 1px solid #D52B1E;
         }
 
         .calendar-day.other-month {
@@ -555,7 +579,6 @@
 
         .day-number {
             font-size: 1rem;
-            font-weight: bold;
         }
 
         /* 活動詳情 */
@@ -615,6 +638,19 @@
         .action-button:hover {
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        /* 活動狀態篩選按鈕顏色 */
+        .filter-btn-upcoming {
+            background: linear-gradient(135deg, #2E7D32 0%, #4CAF50 100%);
+        }
+        
+        .filter-btn-ongoing {
+            background: linear-gradient(135deg, #1565C0 0%, #2196F3 100%);
+        }
+        
+        .filter-btn-completed {
+            background: linear-gradient(135deg, #616161 0%, #9E9E9E 100%);
         }
 
         /* 提示框 */
@@ -1047,7 +1083,7 @@
                 <!-- 簡易日曆視圖 -->
                 <div class="calendar-view">
                     <div class="calendar-header">
-                        <h4>2025年5月</h4>
+                        <h4 id="calendar-title">2025年5月</h4>
                         <div class="calendar-nav">
                             <button id="prev-month" aria-label="上個月">‹</button>
                             <button id="next-month" aria-label="下個月">›</button>
@@ -1072,11 +1108,12 @@
                 <!-- 活動篩選器 -->
                 <div class="info-box">
                     <h4>📅 活動狀態篩選</h4>
+                    <p>日曆中的圓點顏色對應活動狀態：<span style="color:#4CAF50">● 即將舉行</span> | <span style="color:#2196F3">● 進行中</span> | <span style="color:#9E9E9E">● 已結束</span></p>
                     <div style="display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap;">
                         <button class="action-button" onclick="filterEvents('all')">全部活動</button>
-                        <button class="action-button" onclick="filterEvents('upcoming')" style="background: linear-gradient(135deg, #2E7D32 0%, #4CAF50 100%);">即將舉行</button>
-                        <button class="action-button" onclick="filterEvents('ongoing')" style="background: linear-gradient(135deg, #1565C0 0%, #2196F3 100%);">進行中</button>
-                        <button class="action-button" onclick="filterEvents('completed')" style="background: linear-gradient(135deg, #616161 0%, #9E9E9E 100%);">已結束</button>
+                        <button class="action-button filter-btn-upcoming" onclick="filterEvents('upcoming')">即將舉行</button>
+                        <button class="action-button filter-btn-ongoing" onclick="filterEvents('ongoing')">進行中</button>
+                        <button class="action-button filter-btn-completed" onclick="filterEvents('completed')">已結束</button>
                     </div>
                 </div>
                 
@@ -1424,9 +1461,15 @@
         ];
 
         // ==================== 日历相关变量 ====================
-       const today = new Date();
-let currentYear = today.getFullYear();
-let currentMonth = today.getMonth(); // 0-indexed (0 = January, 11 = December)
+        let currentYear, currentMonth, currentDay;
+        
+        // 初始化当前日期
+        function initCurrentDate() {
+            const today = new Date();
+            currentYear = today.getFullYear();
+            currentMonth = today.getMonth(); // 0-indexed (0 = January)
+            currentDay = today.getDate();
+        }
 
         // ==================== 语言切换函数 ====================
         /**
@@ -1548,6 +1591,19 @@ let currentMonth = today.getMonth(); // 0-indexed (0 = January, 11 = December)
             });
         }
 
+        // ==================== 获取某一天的活动状态 ====================
+        /**
+         * 获取指定日期的活动状态数组
+         * @param {number} year - 年份
+         * @param {number} month - 月份 (0-11)
+         * @param {number} day - 日期
+         * @returns {Array} 包含当天所有活动状态的数组
+         */
+        function getEventsForDate(year, month, day) {
+            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            return events.filter(event => event.date === dateStr).map(event => event.status);
+        }
+
         // ==================== 日历渲染函数 ====================
         function renderCalendar(year, month) {
             const calendarDays = document.getElementById('calendar-days');
@@ -1555,7 +1611,7 @@ let currentMonth = today.getMonth(); // 0-indexed (0 = January, 11 = December)
             
             // 更新日历标题
             const monthNames = ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"];
-            document.querySelector('.calendar-header h4').textContent = `${year}年${monthNames[month]}`;
+            document.getElementById('calendar-title').textContent = `${year}年${monthNames[month]}`;
             
             // 获取当月第一天和最后一天
             const firstDay = new Date(year, month, 1);
@@ -1583,26 +1639,40 @@ let currentMonth = today.getMonth(); // 0-indexed (0 = January, 11 = December)
                        day === today.getDate();
             };
             
-            // 检查某天是否有活动
-            const hasEventOnDate = (day) => {
-                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                return events.some(event => event.date === dateStr);
-            };
-            
             // 填充当月日期
             for (let day = 1; day <= lastDay.getDate(); day++) {
                 const dayElement = document.createElement('div');
                 dayElement.className = 'calendar-day';
                 
+                // 检查是否是今天
                 if (isToday(day)) {
-                    dayElement.classList.add('active');
+                    dayElement.classList.add('today');
                 }
                 
-                if (hasEventOnDate(day)) {
+                // 检查这一天是否有活动
+                const dayEvents = getEventsForDate(year, month, day);
+                
+                if (dayEvents.length > 0) {
                     dayElement.classList.add('has-event');
+                    
+                    // 创建活动状态圆点容器
+                    const eventDots = document.createElement('div');
+                    eventDots.className = 'event-dots';
+                    
+                    // 根据活动状态添加不同颜色的圆点
+                    // 为了显示清晰，每种状态只显示一个圆点
+                    const uniqueStatuses = [...new Set(dayEvents)];
+                    
+                    uniqueStatuses.forEach(status => {
+                        const dot = document.createElement('div');
+                        dot.className = `event-dot ${status}`;
+                        eventDots.appendChild(dot);
+                    });
+                    
+                    dayElement.appendChild(eventDots);
                 }
                 
-                dayElement.innerHTML = `<div class="day-number">${day}</div>`;
+                dayElement.innerHTML = `<div class="day-number">${day}</div>` + dayElement.innerHTML;
                 
                 // 添加点击事件
                 dayElement.addEventListener('click', () => {
@@ -1677,6 +1747,9 @@ let currentMonth = today.getMonth(); // 0-indexed (0 = January, 11 = December)
             
             // 頁面狀態
             let isEarthLoaded = false;
+            
+            // 初始化当前日期
+            initCurrentDate();
             
             // 漢堡菜單切換功能
             function toggleMenu() {
@@ -1932,7 +2005,7 @@ let currentMonth = today.getMonth(); // 0-indexed (0 = January, 11 = December)
                 // 初始化地球（緩慢自轉背景）
                 setTimeout(initEarth, 500);
                 
-                // 渲染日历
+                // 使用当前日期渲染日历
                 renderCalendar(currentYear, currentMonth);
                 
                 // 渲染所有活动
