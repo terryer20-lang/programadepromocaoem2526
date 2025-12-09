@@ -709,45 +709,6 @@
             margin: 0 auto;
         }
 
-        /* 統計數字 */
-        .stats-container {
-            display: flex;
-            justify-content: space-around;
-            flex-wrap: wrap;
-            margin: 2rem 0;
-            gap: 1.5rem;
-        }
-
-        .stat-item {
-            text-align: center;
-            flex: 1;
-            min-width: 120px;
-        }
-
-        .stat-number {
-            font-size: 2.5rem;
-            font-weight: bold;
-            color: #FFD700;
-            display: block;
-            margin-bottom: 0.5rem;
-            transition: all 0.3s ease;
-        }
-
-        .stat-number.updated {
-            animation: pulse 0.5s ease-in-out;
-        }
-
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.2); }
-            100% { transform: scale(1); }
-        }
-
-        .stat-label {
-            font-size: 0.9rem;
-            color: rgba(255, 255, 255, 0.8);
-        }
-
         /* 桌面適配 (移動優先) */
         @media (min-width: 768px) {
             html {
@@ -818,12 +779,6 @@
 
             .placeholder-content {
                 padding: 2rem 1rem;
-            }
-            
-            .stats-container {
-                flex-direction: column;
-                align-items: center;
-                gap: 1rem;
             }
             
             .footer-links a {
@@ -961,22 +916,6 @@
                 <h2>快速學習，安全出行</h2>
                 <p>通過簡短的一分鐘影片，快速了解海外旅行安全知識、領事保護資訊和居民權利。我們的短片由專業團隊製作，內容精煉，重點突出，適合在短時間內掌握關鍵資訊。</p>
                 
-                <!-- 統計數據 - 更新後的版本 -->
-                <div class="stats-container">
-                    <div class="stat-item">
-                        <span class="stat-number">50+</span>
-                        <span class="stat-label">短片數量</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-number" id="view-count">1,000,234</span>
-                        <span class="stat-label">觀看次數</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-number">6</span>
-                        <span class="stat-label">主題分類</span>
-                    </div>
-                </div>
-                
                 <!-- 分類過濾器 - 更新為6個分類 -->
                 <h3>按主題瀏覽</h3>
                 <div class="filter-container">
@@ -1097,7 +1036,6 @@
                 <div class="info-box">
                     <h4>🎬 觀看提示</h4>
                     <p>所有短片均為一分鐘左右的簡短影片，適合快速學習。點擊短片卡片上的播放按鈕即可觀看。您也可以按主題篩選短片，方便查找相關內容。</p>
-                    <p><strong>小提示：</strong>每觀看一個短片，頁面上的觀看次數會即時增加，讓您看到全球用戶的共同學習成果！</p>
                 </div>
                 
                 <!-- 返回按鈕 -->
@@ -1369,10 +1307,6 @@
             // 短片相關元素
             const filterButtons = document.querySelectorAll('.filter-btn');
             const videoCards = document.querySelectorAll('.video-card');
-            const videoPlayButtons = document.querySelectorAll('.video-play-btn');
-            
-            // 統計相關元素
-            const viewCountElement = document.getElementById('view-count');
             
             let lastScrollTop = 0;
             let isMenuOpen = false;
@@ -1390,9 +1324,6 @@
             
             // 頁面狀態
             let isEarthLoaded = false;
-            
-            // 觀看次數變數
-            let viewCount = 0; // 初始觀看次數
             
             // 漢堡菜單切換功能
             function toggleMenu() {
@@ -1454,58 +1385,6 @@
             // 页面加载时立即调用高亮函数
             highlightCurrentLanguage();
 
-            // ==================== 觀看次數更新功能 ====================
-            /**
-             * 格式化觀看次數，添加逗號分隔符
-             * @param {number} num - 觀看次數
-             * @returns {string} 格式化後的觀看次數
-             */
-            function formatViewCount(num) {
-                return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-            }
-            
-            /**
-             * 更新觀看次數顯示
-             * @param {number} increment - 增加的觀看次數（默認為1）
-             */
-            function updateViewCount(increment = 1) {
-                // 增加觀看次數
-                viewCount += increment;
-                
-                // 更新顯示
-                viewCountElement.textContent = formatViewCount(viewCount);
-                
-                // 添加動畫效果
-                viewCountElement.classList.add('updated');
-                
-                // 移除動畫類，以便下次可以再次觸發
-                setTimeout(() => {
-                    viewCountElement.classList.remove('updated');
-                }, 500);
-                
-                // 可選：將觀看次數保存到本地存儲，以便在頁面刷新後保持
-                try {
-                    localStorage.setItem('short-videos-view-count', viewCount);
-                } catch (e) {
-                    console.log('無法保存觀看次數到本地存儲');
-                }
-            }
-            
-            /**
-             * 從本地存儲載入觀看次數
-             */
-            function loadViewCountFromStorage() {
-                try {
-                    const savedCount = localStorage.getItem('short-videos-view-count');
-                    if (savedCount) {
-                        viewCount = parseInt(savedCount, 10);
-                        viewCountElement.textContent = formatViewCount(viewCount);
-                    }
-                } catch (e) {
-                    console.log('無法從本地存儲載入觀看次數');
-                }
-            }
-
             // ==================== 短片過濾功能 ====================
             /**
              * 短片分類過濾功能
@@ -1555,12 +1434,9 @@
                         const videoCard = playButton.closest('.video-card');
                         const videoTitle = videoCard.querySelector('.video-title').textContent;
                         
-                        // 更新觀看次數
-                        updateViewCount();
-                        
                         // 實際應用中，這裡可以打開一個影片播放器或導向影片頁面
                         // 目前先顯示一個提示訊息
-                        alert(`正在播放: ${videoTitle}\n\n觀看次數已增加！`);
+                        alert(`正在播放: ${videoTitle}\n\n(此為演示功能，實際應用中將播放影片ID: ${videoId})`);
                         
                         // 可以在此處添加實際的影片播放邏輯
                         // 例如：window.open(`https://example.com/video/${videoId}`, '_blank');
@@ -1762,9 +1638,6 @@
                 // 初始化地球（緩慢自轉背景）
                 setTimeout(initEarth, 500);
                 
-                // 從本地存儲載入觀看次數
-                loadViewCountFromStorage();
-                
                 // 初始化短片功能
                 initVideoFilter();
                 initVideoPlayback();
@@ -1786,4 +1659,3 @@
     </script>
 </body>
 </html>
-
