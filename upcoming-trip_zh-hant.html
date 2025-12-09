@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>我在海外遇到困難專區 - 領事保護與居民權利</title>
+    <title>我即將出國專區 - 出國前準備指南</title>
     <!-- 引入 D3.js 和 TopoJSON -->
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="https://unpkg.com/topojson-client@3"></script>
@@ -375,8 +375,108 @@
             line-height: 1.6;
         }
 
-        /* 困難類別標籤 */
-        .difficulty-category {
+        /* 檢查清單樣式 */
+        .checklist-container {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border: 1px solid rgba(255, 215, 0, 0.2);
+        }
+
+        .checklist-item {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 1.2rem;
+            padding-bottom: 1.2rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .checklist-item:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+
+        .checklist-checkbox {
+            min-width: 24px;
+            height: 24px;
+            border: 2px solid #FFD700;
+            border-radius: 4px;
+            margin-right: 1rem;
+            margin-top: 0.2rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .checklist-checkbox.checked {
+            background-color: #FFD700;
+        }
+
+        .checklist-checkbox.checked:after {
+            content: "✓";
+            color: #1A2B6D;
+            font-weight: bold;
+        }
+
+        .checklist-content h5 {
+            font-size: 1.1rem;
+            color: #FFD700;
+            margin-bottom: 0.3rem;
+        }
+
+        .checklist-content p {
+            font-size: 0.95rem;
+            color: rgba(255, 255, 255, 0.8);
+            line-height: 1.5;
+        }
+
+        /* 倒數計時器 */
+        .countdown-container {
+            background: linear-gradient(135deg, #1A2B6D 0%, #D52B1E 100%);
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            margin: 2rem 0;
+        }
+
+        .countdown-title {
+            font-size: 1.5rem;
+            color: #FFD700;
+            margin-bottom: 1.5rem;
+        }
+
+        .countdown-display {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .countdown-unit {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 70px;
+        }
+
+        .countdown-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: white;
+            line-height: 1;
+            margin-bottom: 0.3rem;
+        }
+
+        .countdown-label {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        /* 旅行清單類別 */
+        .travel-category {
             display: inline-block;
             background: linear-gradient(135deg, #1A2B6D 0%, #D52B1E 100%);
             color: white;
@@ -428,82 +528,6 @@
         .action-button:hover {
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-        }
-
-        /* 緊急求助按鈕 */
-        .emergency-button {
-            display: inline-block;
-            background: linear-gradient(135deg, #D52B1E 0%, #B22222 100%);
-            color: white;
-            padding: 1rem 2rem;
-            border-radius: 8px;
-            text-decoration: none;
-            font-weight: 700;
-            font-size: 1.2rem;
-            border: none;
-            cursor: pointer;
-            transition: all 0.3s;
-            margin: 1rem 0;
-            text-align: center;
-            box-shadow: 0 4px 12px rgba(213, 43, 30, 0.4);
-        }
-
-        .emergency-button:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 20px rgba(213, 43, 30, 0.6);
-        }
-
-        /* 步驟指示器 */
-        .step-indicator {
-            display: flex;
-            justify-content: space-between;
-            margin: 2rem 0;
-            position: relative;
-        }
-
-        .step-indicator:before {
-            content: '';
-            position: absolute;
-            top: 20px;
-            left: 0;
-            right: 0;
-            height: 2px;
-            background: rgba(255, 255, 255, 0.2);
-            z-index: 1;
-        }
-
-        .step {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            position: relative;
-            z-index: 2;
-            flex: 1;
-        }
-
-        .step-number {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: #1A2B6D;
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            margin-bottom: 0.5rem;
-            border: 2px solid #FFD700;
-        }
-
-        .step.active .step-number {
-            background: #FFD700;
-            color: #1A2B6D;
-        }
-
-        .step-label {
-            font-size: 0.9rem;
-            text-align: center;
-            color: rgba(255, 255, 255, 0.8);
         }
 
         /* 頁腳 - 在第三區塊下面 */
@@ -676,58 +700,64 @@
             display: none;
         }
 
-        /* 緊急聯繫框 */
-        .emergency-contact {
-            background: rgba(213, 43, 30, 0.2);
-            border: 1px solid rgba(213, 43, 30, 0.5);
+        /* 暫無內容提示 */
+        .placeholder-content {
+            text-align: center;
+            padding: 3rem;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 12px;
+            border: 2px dashed rgba(255, 215, 0, 0.3);
+            margin: 2rem 0;
+        }
+
+        .placeholder-content h3 {
+            color: #FFD700;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .placeholder-content p {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 1.1rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* 旅行目的地標示 */
+        .destination-tag {
+            display: inline-block;
+            background-color: rgba(255, 215, 0, 0.2);
+            color: #FFD700;
+            padding: 0.4rem 1rem;
+            border-radius: 20px;
+            font-size: 1rem;
+            font-weight: 600;
+            margin: 0.5rem 0;
+            border: 1px solid rgba(255, 215, 0, 0.3);
+        }
+
+        /* 進度條 */
+        .progress-container {
+            width: 100%;
+            background-color: rgba(255, 255, 255, 0.1);
             border-radius: 10px;
-            padding: 1.5rem;
+            overflow: hidden;
             margin: 1.5rem 0;
         }
 
-        .emergency-contact h4 {
-            color: #FFD700;
-            font-size: 1.3rem;
-            margin-bottom: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .emergency-contact p {
-            color: rgba(255, 255, 255, 0.9);
-            font-size: 1rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .emergency-number {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: #FFD700;
-            text-decoration: none;
-            display: inline-block;
-            margin: 0.5rem 0;
-        }
-
-        /* 困難情境卡片 */
-        .situation-card {
-            background: rgba(255, 255, 255, 0.05);
+        .progress-bar {
+            height: 12px;
+            background: linear-gradient(90deg, #1A2B6D 0%, #D52B1E 100%);
             border-radius: 10px;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-            border-left: 4px solid #FFD700;
+            transition: width 0.5s ease;
         }
 
-        .situation-card h5 {
-            font-size: 1.2rem;
-            color: #FFD700;
-            margin-bottom: 0.8rem;
-        }
-
-        .situation-card p {
-            font-size: 1rem;
+        .progress-text {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
             color: rgba(255, 255, 255, 0.8);
-            margin-bottom: 0.5rem;
         }
 
         /* 桌面適配 (移動優先) */
@@ -784,16 +814,17 @@
                 grid-template-columns: 1fr;
                 gap: 1.5rem;
             }
-            
-            .step-indicator {
-                flex-wrap: wrap;
-                justify-content: center;
-                gap: 1.5rem;
+
+            .placeholder-content {
+                padding: 2rem 1rem;
             }
             
-            .step {
-                flex: 0 0 calc(50% - 1rem);
-                margin-bottom: 1rem;
+            .countdown-unit {
+                min-width: 60px;
+            }
+            
+            .countdown-value {
+                font-size: 2rem;
             }
             
             .footer-links a {
@@ -924,171 +955,166 @@
 
         <!-- 內容區域 -->
         <section class="content-section" id="content-section">
-            <h1 class="page-title">我在海外遇到困難</h1>
+            <h1 class="page-title">我即將出國專區</h1>
             
             <!-- 主要內容卡片 -->
             <div class="content-card">
-                <h2>海外困難協助指南</h2>
-                <p>當您在海外遇到困難時，不必驚慌。本專區為您提供各種常見海外困難的解決方案、緊急聯繫方式和實用資源。請根據您遇到的具體情況選擇對應的幫助指引。</p>
+                <h2>出國前準備指南</h2>
+                <p>出國旅行或居住前做好充分準備，能讓您的海外旅程更加順利和安全。本專區為您提供全面的出國前準備指南，包括文件準備、健康檢查、保險購買、目的地資訊等重要事項。</p>
                 
-                <!-- 緊急求助按鈕 -->
-                <div style="text-align: center; margin: 2rem 0;">
-                    <a href="emergency_zh-hant.html" class="emergency-button">🚨 緊急求助 (24小時)</a>
-                </div>
-                
-                <!-- 常見困難類別 -->
-                <h3>常見困難類別</h3>
-                <div style="margin: 1.5rem 0;">
-                    <span class="difficulty-category">🛂 證件遺失</span>
-                    <span class="difficulty-category">💰 財務困難</span>
-                    <span class="difficulty-category">🏥 醫療急救</span>
-                    <span class="difficulty-category">⚖️ 法律糾紛</span>
-                    <span class="difficulty-category">🚔 安全威脅</span>
-                    <span class="difficulty-category">🏠 住宿問題</span>
-                    <span class="difficulty-category">📱 通訊中斷</span>
-                    <span class="difficulty-category">🧳 行李遺失</span>
-                </div>
-                
-                <!-- 緊急聯繫資訊 -->
-                <div class="emergency-contact">
-                    <h4>📞 緊急聯繫方式</h4>
-                    <p><strong>外交部全球領事保護與服務應急熱線（24小時）：</strong></p>
-                    <a href="tel:+86-10-12308" class="emergency-number">+86-10-12308</a>
-                    <p style="margin-top: 1rem;"><strong>澳門特別行政區政府旅遊危機處理辦公室：</strong></p>
-                    <p>電話：(853) 2833 3000</p>
-                    <p style="margin-top: 1rem;"><strong>當地緊急電話（警察/救護車/消防）：</strong></p>
-                    <p>請先撥打當地緊急電話，再聯繫使領館</p>
-                </div>
-                
-                <!-- 步驟指示器 -->
-                <h3>遇到困難時的基本步驟</h3>
-                <div class="step-indicator">
-                    <div class="step active">
-                        <div class="step-number">1</div>
-                        <div class="step-label">保持冷靜</div>
-                    </div>
-                    <div class="step">
-                        <div class="step-number">2</div>
-                        <div class="step-label">確保安全</div>
-                    </div>
-                    <div class="step">
-                        <div class="step-number">3</div>
-                        <div class="step-label">聯繫當地<br>緊急服務</div>
-                    </div>
-                    <div class="step">
-                        <div class="step-number">4</div>
-                        <div class="step-label">聯繫中國<br>使領館</div>
-                    </div>
-                    <div class="step">
-                        <div class="step-number">5</div>
-                        <div class="step-label">通知家人</div>
-                    </div>
-                </div>
-                
-                <!-- 常見困難情境與解決方案 -->
-                <h3>常見困難情境與解決方案</h3>
-                
-                <div class="situation-card">
-                    <h5>🛂 護照或證件遺失</h5>
-                    <p><strong>應對步驟：</strong></p>
-                    <ol>
-                        <li>立即向當地警察局報案，獲取報案證明</li>
-                        <li>聯繫最近的中國使領館申請補發旅行證</li>
-                        <li>準備身份證明文件複印件及照片</li>
-                        <li>保留使領館聯繫方式及案件編號</li>
-                    </ol>
-                    <p><strong>預防建議：</strong>出行前複印重要證件，分開存放原件與複印件</p>
-                </div>
-                
-                <div class="situation-card">
-                    <h5>💰 財務困難或信用卡被盜</h5>
-                    <p><strong>應對步驟：</strong></p>
-                    <ol>
-                        <li>立即聯繫銀行凍結信用卡/銀行卡</li>
-                        <li>向當地警方報案並獲取報案證明</li>
-                        <li>聯繫家人或朋友尋求緊急資金援助</li>
-                        <li>聯繫使領館了解當地華人社團援助資源</li>
-                    </ol>
-                    <p><strong>預防建議：</strong>分散存放資金，攜帶少量現金，使用防盜錢包</p>
-                </div>
-                
-                <div class="situation-card">
-                    <h5>🏥 突發疾病或意外受傷</h5>
-                    <p><strong>應對步驟：</strong></p>
-                    <ol>
-                        <li>立即撥打當地急救電話請求醫療援助</li>
-                        <li>聯繫旅行保險公司了解理賠流程</li>
-                        <li>請醫院提供詳細診斷證明及費用單據</li>
-                        <li>聯繫使領館協助溝通及家人通知</li>
-                    </ol>
-                    <p><strong>預防建議：</strong>出發前購買包含醫療保障的旅行保險，了解當地醫療系統</p>
-                </div>
-                
-                <div class="situation-card">
-                    <h5>⚖️ 涉及法律糾紛或被捕</h5>
-                    <p><strong>應對步驟：</strong></p>
-                    <ol>
-                        <li>保持冷靜，配合當地執法部門</li>
-                        <li>要求聯繫中國使領館領事官員</li>
-                        <li>要求提供翻譯服務（如語言不通）</li>
-                        <li>不要輕易簽署不理解的文件</li>
-                        <li>尋求專業法律協助</li>
-                    </ol>
-                    <p><strong>注意：</strong>使領館不能干涉當地司法程序，但可提供法律諮詢和協助</p>
-                </div>
-                
-                <!-- 使領館協助範圍說明 -->
+                <!-- 目的地設定 -->
                 <div class="info-box">
-                    <h4>🛡️ 中國使領館可以為您提供的協助</h4>
-                    <p>當您在海外遇到困難時，中國駐外使領館可以根據情況提供以下協助：</p>
-                    <ul>
-                        <li>提供當地律師、翻譯和醫生名單</li>
-                        <li>在發生自然災害、政治動盪等重大事件時協助撤離</li>
-                        <li>在您被拘留、逮捕或服刑時進行領事探視</li>
-                        <li>在您遭遇意外時協助通知國內親屬</li>
-                        <li>協助您與國內親屬聯繫，解決生活或工作困難</li>
-                        <li>為遺失旅行證件或遇到經濟困難的公民頒發旅行證件或提供小額貸款</li>
-                    </ul>
-                    <p><strong>注意：</strong>使領館不能為您支付醫療、法律、酒店、機票等費用。</p>
+                    <h4>✈️ 設定您的旅行目的地</h4>
+                    <p>請選擇您即將前往的國家或地區，我們將為您提供針對性的準備建議。</p>
+                    <div style="margin-top: 1rem;">
+                        <span class="destination-tag" id="destination-tag">未設定目的地</span>
+                    </div>
+                    <button class="action-button" onclick="openDestinationModal()" style="margin-top: 1rem;">設定目的地</button>
                 </div>
                 
-                <!-- 預防措施 -->
-                <h3>海外安全預防措施</h3>
+                <!-- 倒數計時器 -->
+                <div class="countdown-container">
+                    <div class="countdown-title">距離出發還有</div>
+                    <div class="countdown-display">
+                        <div class="countdown-unit">
+                            <div class="countdown-value" id="countdown-days">00</div>
+                            <div class="countdown-label">天</div>
+                        </div>
+                        <div class="countdown-unit">
+                            <div class="countdown-value" id="countdown-hours">00</div>
+                            <div class="countdown-label">小時</div>
+                        </div>
+                        <div class="countdown-unit">
+                            <div class="countdown-value" id="countdown-minutes">00</div>
+                            <div class="countdown-label">分鐘</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 準備進度 -->
+                <h3>出國準備進度</h3>
+                <div class="progress-container">
+                    <div class="progress-bar" id="progress-bar" style="width: 30%"></div>
+                </div>
+                <div class="progress-text">
+                    <span>準備進度</span>
+                    <span id="progress-percentage">30%</span>
+                </div>
+                
+                <h3>旅行準備類別</h3>
+                <div>
+                    <span class="travel-category">📋 文件準備</span>
+                    <span class="travel-category">💉 健康與疫苗</span>
+                    <span class="travel-category">💰 財務安排</span>
+                    <span class="travel-category">📱 通訊與網路</span>
+                    <span class="travel-category">🧳 行李打包</span>
+                    <span class="travel-category">🏠 住宿與交通</span>
+                    <span class="travel-category">🆘 緊急應對</span>
+                </div>
+                
+                <!-- 出國前檢查清單 -->
+                <h3>出國前檢查清單</h3>
+                <div class="checklist-container">
+                    <div class="checklist-item">
+                        <div class="checklist-checkbox" onclick="toggleCheckbox(this)"></div>
+                        <div class="checklist-content">
+                            <h5>護照與簽證</h5>
+                            <p>確認護照有效期至少6個月以上，辦理目的地國家所需簽證。</p>
+                        </div>
+                    </div>
+                    
+                    <div class="checklist-item">
+                        <div class="checklist-checkbox" onclick="toggleCheckbox(this)"></div>
+                        <div class="checklist-content">
+                            <h5>機票與住宿</h5>
+                            <p>確認機票訂位、列印電子機票，預訂住宿並列印確認單。</p>
+                        </div>
+                    </div>
+                    
+                    <div class="checklist-item">
+                        <div class="checklist-checkbox" onclick="toggleCheckbox(this)"></div>
+                        <div class="checklist-content">
+                            <h5>旅行保險</h5>
+                            <p>購買包含醫療、行李遺失和行程取消的綜合旅行保險。</p>
+                        </div>
+                    </div>
+                    
+                    <div class="checklist-item">
+                        <div class="checklist-checkbox" onclick="toggleCheckbox(this)"></div>
+                        <div class="checklist-content">
+                            <h5>疫苗與健康檢查</h5>
+                            <p>根據目的地要求接種必要疫苗，進行行前健康檢查。</p>
+                        </div>
+                    </div>
+                    
+                    <div class="checklist-item">
+                        <div class="checklist-checkbox" onclick="toggleCheckbox(this)"></div>
+                        <div class="checklist-content">
+                            <h5>財務準備</h5>
+                            <p>兌換當地貨幣、準備國際信用卡、告知銀行旅行計劃。</p>
+                        </div>
+                    </div>
+                    
+                    <div class="checklist-item">
+                        <div class="checklist-checkbox" onclick="toggleCheckbox(this)"></div>
+                        <div class="checklist-content">
+                            <h5>通訊安排</h5>
+                            <p>開通國際漫遊、購買當地SIM卡、下載必要通訊應用程式。</p>
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="features-grid">
                     <div class="feature-card">
-                        <h4>📄 文件安全</h4>
-                        <p>將護照、簽證、身份證等重要文件複印或拍照，原件與複印件分開存放。在手機和雲端保存電子副本。</p>
+                        <h4>📄 重要文件準備</h4>
+                        <p>護照、簽證、機票、住宿確認、旅行保險單、國際駕照、信用卡副本等重要文件準備與保管建議。</p>
                     </div>
                     
                     <div class="feature-card">
-                        <h4>💰 財務安全</h4>
-                        <p>準備多種支付方式（現金、信用卡、旅行支票），分開存放。記錄銀行緊急聯絡電話和信用卡號碼。</p>
+                        <h4>🏥 健康與醫療準備</h4>
+                        <p>目的地疫情資訊、必要疫苗接種、個人藥物準備、旅行醫療包、當地醫療資源查詢。</p>
                     </div>
                     
                     <div class="feature-card">
-                        <h4>📱 通訊準備</h4>
-                        <p>開通國際漫遊或購買當地SIM卡。保存中國使領館、當地緊急電話和保險公司聯絡方式。</p>
+                        <h4>💰 財務與保險</h4>
+                        <p>貨幣兌換、國際支付方式、旅行保險選擇、緊急資金準備、防盜安全建議。</p>
                     </div>
                     
                     <div class="feature-card">
-                        <h4>🏥 醫療準備</h4>
-                        <p>購買合適的旅行保險，攜帶個人常用藥品及英文處方。了解目的地醫療資源和緊急醫療服務。</p>
+                        <h4>📱 通訊與網路</h4>
+                        <p>國際漫遊方案、當地SIM卡、免費WiFi熱點、重要聯絡電話、離線地圖下載。</p>
                     </div>
                 </div>
                 
-                <!-- 資源連結 -->
-                <h3>相關資源與連結</h3>
+                <!-- 重要提醒 -->
+                <div class="info-box">
+                    <h4>⚠️ 重要提醒</h4>
+                    <p>出發前請務必查閱目的地國家/地區的最新入境規定，包括簽證要求、疫苗接種證明、檢疫規定等。建議提前至少一個月開始準備，並在出發前72小時再次確認所有事項。</p>
+                </div>
+                
+                <h3>使領館服務</h3>
+                <p>出發前，建議您：</p>
+                <ol>
+                    <li><strong>登記出行資訊</strong> - 通過中國領事服務網登記您的旅行計劃，以便使領館在緊急情況下提供協助</li>
+                    <li><strong>保存緊急聯絡方式</strong> - 記錄目的地中國使領館的地址、電話和緊急聯絡方式</li>
+                    <li><strong>了解領事保護服務</strong> - 了解在海外可獲得的領事保護與協助服務範圍</li>
+                    <li><strong>下載官方應用</strong> - 下載「外交部12308」手機應用程式，隨時獲取領事保護資訊</li>
+                </ol>
+                
+                <h3>相關資源</h3>
                 <p>以下資源可能對您有幫助：</p>
                 <ul>
-                    <li>中國領事服務網：cs.mfa.gov.cn - 查詢使領館資訊、安全提醒等</li>
-                    <li>全球風險地圖 - 查看各國安全風險等級（請使用網站內導航）</li>
-                    <li>資源專區 - 下載實用旅行安全資料（請使用網站內導航）</li>
-                    <li>外交部領事保護官方微信：領事直通車 (ls12308)</li>
+                    <li>中國領事服務網：cs.mfa.gov.cn</li>
+                    <li>外交部全球領事保護與服務應急熱線：+86-10-12308</li>
+                    <li>目的地國家入境事務官方網站</li>
+                    <li>國際旅行健康建議 (CDC/WHO)</li>
                 </ul>
                 
                 <!-- 行動按鈕 -->
                 <div style="display: flex; gap: 1rem; margin-top: 2rem; flex-wrap: wrap;">
                     <a href="index.html" class="action-button">返回主頁</a>
+                    <a href="risk-map_zh-hant.html" class="action-button">查看全球風險地圖</a>
+                    <a href="emergency_zh-hant.html" class="action-button">緊急求助專區</a>
                 </div>
             </div>
         </section>
@@ -1128,6 +1154,32 @@
 
     <!-- 提示框 -->
     <div class="tooltip" id="tooltip"></div>
+
+    <!-- 目的地設定模態框 -->
+    <div id="destination-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center;">
+        <div style="background: #1A2B6D; padding: 2rem; border-radius: 12px; max-width: 500px; width: 90%;">
+            <h3 style="color: #FFD700; margin-bottom: 1.5rem;">設定您的旅行目的地</h3>
+            <p style="color: white; margin-bottom: 1.5rem;">請選擇或輸入您即將前往的國家或地區：</p>
+            <select id="destination-select" style="width: 100%; padding: 0.8rem; border-radius: 6px; margin-bottom: 1.5rem; background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.3);">
+                <option value="">請選擇目的地</option>
+                <option value="葡萄牙">葡萄牙</option>
+                <option value="日本">日本</option>
+                <option value="美國">美國</option>
+                <option value="澳大利亞">澳大利亞</option>
+                <option value="英國">英國</option>
+                <option value="法國">法國</option>
+                <option value="德國">德國</option>
+                <option value="泰國">泰國</option>
+                <option value="新加坡">新加坡</option>
+                <option value="其他">其他</option>
+            </select>
+            <input type="date" id="departure-date" style="width: 100%; padding: 0.8rem; border-radius: 6px; margin-bottom: 1.5rem; background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.3);">
+            <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                <button class="action-button" onclick="closeDestinationModal()" style="background: #666;">取消</button>
+                <button class="action-button" onclick="saveDestination()">儲存設定</button>
+            </div>
+        </div>
+    </div>
 
     <script>
         // ==================== 语言映射表 ====================
@@ -1259,6 +1311,14 @@
             
             // 页面状态
             let isEarthLoaded = false;
+            
+            // 出国准备相关变量
+            let destination = localStorage.getItem('travelDestination') || '未設定目的地';
+            let departureDate = localStorage.getItem('departureDate') || '';
+            let checkedItems = JSON.parse(localStorage.getItem('checkedItems')) || [false, false, false, false, false, false];
+            
+            // 初始化页面时恢复状态
+            initTravelData();
             
             // 汉堡菜单切换功能
             function toggleMenu() {
@@ -1501,6 +1561,137 @@
                         d3.select(".sphere-outline").attr("d", path);
                     }
                 });
+            }
+            
+            // ==================== 旅行准备功能 ====================
+            // 初始化旅行数据
+            function initTravelData() {
+                // 设置目的地标签
+                document.getElementById('destination-tag').textContent = destination;
+                
+                // 设置检查清单状态
+                const checkboxes = document.querySelectorAll('.checklist-checkbox');
+                checkboxes.forEach((checkbox, index) => {
+                    if (checkedItems[index]) {
+                        checkbox.classList.add('checked');
+                    }
+                });
+                
+                // 更新进度
+                updateProgress();
+                
+                // 启动倒计时
+                updateCountdown();
+                setInterval(updateCountdown, 60000); // 每分钟更新一次
+            }
+            
+            // 更新准备进度
+            function updateProgress() {
+                const checkedCount = checkedItems.filter(item => item).length;
+                const totalItems = checkedItems.length;
+                const percentage = Math.round((checkedCount / totalItems) * 100);
+                
+                document.getElementById('progress-bar').style.width = `${percentage}%`;
+                document.getElementById('progress-percentage').textContent = `${percentage}%`;
+            }
+            
+            // 切换复选框状态
+            window.toggleCheckbox = function(checkbox) {
+                checkbox.classList.toggle('checked');
+                
+                // 更新checkedItems数组
+                const index = Array.from(document.querySelectorAll('.checklist-checkbox')).indexOf(checkbox);
+                if (index !== -1) {
+                    checkedItems[index] = checkbox.classList.contains('checked');
+                    localStorage.setItem('checkedItems', JSON.stringify(checkedItems));
+                    updateProgress();
+                }
+            }
+            
+            // 更新倒计时
+            function updateCountdown() {
+                if (!departureDate) {
+                    document.getElementById('countdown-days').textContent = '--';
+                    document.getElementById('countdown-hours').textContent = '--';
+                    document.getElementById('countdown-minutes').textContent = '--';
+                    return;
+                }
+                
+                const now = new Date();
+                const departure = new Date(departureDate);
+                const timeDiff = departure - now;
+                
+                if (timeDiff <= 0) {
+                    document.getElementById('countdown-days').textContent = '00';
+                    document.getElementById('countdown-hours').textContent = '00';
+                    document.getElementById('countdown-minutes').textContent = '00';
+                    return;
+                }
+                
+                const days = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((timeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+                
+                document.getElementById('countdown-days').textContent = days.toString().padStart(2, '0');
+                document.getElementById('countdown-hours').textContent = hours.toString().padStart(2, '0');
+                document.getElementById('countdown-minutes').textContent = minutes.toString().padStart(2, '0');
+            }
+            
+            // 打开目的地设置模态框
+            window.openDestinationModal = function() {
+                const modal = document.getElementById('destination-modal');
+                modal.style.display = 'flex';
+                
+                // 设置选择框的值
+                const select = document.getElementById('destination-select');
+                if (destination !== '未設定目的地') {
+                    select.value = destination;
+                }
+                
+                // 设置日期输入框的值
+                const dateInput = document.getElementById('departure-date');
+                if (departureDate) {
+                    dateInput.value = departureDate;
+                } else {
+                    // 默认设置为两周后
+                    const defaultDate = new Date();
+                    defaultDate.setDate(defaultDate.getDate() + 14);
+                    dateInput.value = defaultDate.toISOString().split('T')[0];
+                }
+            }
+            
+            // 关闭目的地设置模态框
+            window.closeDestinationModal = function() {
+                document.getElementById('destination-modal').style.display = 'none';
+            }
+            
+            // 保存目的地设置
+            window.saveDestination = function() {
+                const select = document.getElementById('destination-select');
+                const dateInput = document.getElementById('departure-date');
+                
+                if (select.value) {
+                    destination = select.value;
+                    departureDate = dateInput.value;
+                    
+                    // 保存到localStorage
+                    localStorage.setItem('travelDestination', destination);
+                    localStorage.setItem('departureDate', departureDate);
+                    
+                    // 更新页面显示
+                    document.getElementById('destination-tag').textContent = destination;
+                    
+                    // 更新倒计时
+                    updateCountdown();
+                    
+                    // 关闭模态框
+                    closeDestinationModal();
+                    
+                    // 显示成功消息
+                    alert(`目的地已設定為：${destination}\n出發日期：${departureDate}`);
+                } else {
+                    alert('請選擇目的地');
+                }
             }
             
             // 初始化页面
