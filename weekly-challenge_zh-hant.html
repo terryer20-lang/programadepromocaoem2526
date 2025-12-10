@@ -1,0 +1,1740 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>「領保之星」每週主題挑戰賽 - 領事保護與居民權利</title>
+    <!-- 引入 D3.js 和 TopoJSON -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://unpkg.com/topojson-client@3"></script>
+    <style>
+        /* 基礎重置與移動優先樣式 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            font-size: 16px;
+            scroll-behavior: smooth;
+            height: 100%;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft JhengHei", sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(180deg, #0a0f2e 0%, #1A2B6D 100%);
+            min-height: 100vh;
+        }
+
+        /* 觸控目標至少44px */
+        button, 
+        a, 
+        .menu-toggle,
+        .btn,
+        .lang-btn,
+        .menu-item,
+        .stat-item,
+        .challenge-card,
+        .theme-btn {
+            min-height: 44px;
+            min-width: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* 導航欄 - 更新背景為hero模板的漸變，初始隱藏並在上方 */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 1000;
+            padding: 0.5rem 1rem;
+            background: linear-gradient(135deg, rgba(26, 43, 109, 0.95) 0%, rgba(213, 43, 30, 0.95) 100%);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+            transition: transform 0.8s ease-out, opacity 0.8s ease-out;
+            transform: translateY(-100%); /* 初始位置：在上方不可見 */
+            opacity: 0;
+            height: 60px;
+        }
+
+        .header.visible {
+            transform: translateY(0); /* 最終位置：在頂部可見 */
+            opacity: 1;
+        }
+
+        .header.hidden {
+            transform: translateY(-100%);
+        }
+
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 100%;
+        }
+
+        .logo {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #FFD700;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .menu-toggle {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #FFD700;
+            padding: 0.5rem;
+            z-index: 1001;
+        }
+
+        /* 側邊菜單 - 更新背景為hero模板的漸變 */
+        .side-menu {
+            position: fixed;
+            top: 0;
+            right: -100%;
+            width: 85%;
+            max-width: 400px;
+            height: 100vh;
+            background: linear-gradient(135deg, #1A2B6D 0%, #D52B1E 100%);
+            box-shadow: -5px 0 25px rgba(0, 0, 0, 0.1);
+            transition: right 0.4s ease-in-out;
+            z-index: 1002;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .side-menu.active {
+            right: 0;
+        }
+
+        .menu-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s;
+            z-index: 1001;
+        }
+
+        .menu-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .menu-header {
+            padding: 1.2rem;
+            background: rgba(0, 0, 0, 0.2);
+            color: white;
+        }
+
+        .menu-header h2 {
+            font-size: 1.2rem;
+            margin-bottom: 0.3rem;
+            color: #FFD700;
+        }
+
+        .menu-header p {
+            opacity: 0.9;
+            font-size: 0.8rem;
+        }
+
+        /* 語言選擇器 - 移動到菜單頂部 */
+        .lang-selector {
+            padding: 1rem;
+            background-color: rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .lang-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: white;
+        }
+
+        .lang-btn.active {
+            background-color: #f6d52a;
+            color: #000000;
+            border-color: #f6d52a;
+        }
+
+        .menu-content {
+            flex: 1;
+            padding: 1.2rem;
+        }
+
+        .menu-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .menu-section h3 {
+            font-size: 1rem;
+            color: #FFD700;
+            margin-bottom: 0.8rem;
+            padding-bottom: 0.3rem;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            padding: 0.6rem 0;
+            color: white;
+            text-decoration: none;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .menu-item:last-child {
+            border-bottom: none;
+        }
+
+        .menu-item:hover {
+            color: #FFD700;
+            padding-left: 0.5rem;
+        }
+
+        .menu-item-icon {
+            width: 25px;
+            text-align: center;
+            margin-right: 0.6rem;
+            font-size: 1rem;
+        }
+
+        /* 主容器 */
+        .main-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 地球容器 - 全畫面作為背景 */
+        .earth-section {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            background: linear-gradient(to bottom, #0a0f2e 0%, #1A2B6D 100%);
+            z-index: -1;
+        }
+
+        #globe-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #globe {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* 內容區域 - 在背景上方 */
+        .content-section {
+            position: relative;
+            z-index: 10;
+            margin-top: 80px;
+            padding: 2rem 1.5rem;
+            color: white;
+            min-height: calc(100vh - 60px);
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.8s ease-out 0.3s, transform 0.8s ease-out 0.3s;
+        }
+
+        .content-section.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* 頁面標題 */
+        .page-title {
+            text-align: center;
+            font-size: 2.2rem;
+            margin-bottom: 1.5rem;
+            color: #FFD700;
+            position: relative;
+            padding-bottom: 1rem;
+        }
+
+        .page-title:after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 3px;
+            background-color: #D52B1E;
+        }
+
+        /* 子標題 */
+        .page-subtitle {
+            text-align: center;
+            font-size: 1.2rem;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 2.5rem;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            line-height: 1.6;
+        }
+
+        /* 內容卡片 */
+        .content-card {
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 12px;
+            padding: 1.8rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 2rem;
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .content-card h2 {
+            font-size: 1.8rem;
+            color: #FFD700;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .content-card h3 {
+            font-size: 1.4rem;
+            color: #FFD700;
+            margin: 1.5rem 0 1rem;
+        }
+
+        .content-card p {
+            font-size: 1.1rem;
+            line-height: 1.7;
+            margin-bottom: 1rem;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .content-card ul, .content-card ol {
+            padding-left: 2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .content-card li {
+            font-size: 1.1rem;
+            line-height: 1.7;
+            margin-bottom: 0.5rem;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        /* 挑戰賽特色網格 */
+        .challenge-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .challenge-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .challenge-card:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .challenge-card h4 {
+            font-size: 1.3rem;
+            color: #FFD700;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .challenge-card p {
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.8);
+            line-height: 1.6;
+            flex-grow: 1;
+        }
+
+        /* 挑戰主題標籤 */
+        .theme-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .theme-tag {
+            display: inline-block;
+            background: rgba(255, 215, 0, 0.2);
+            color: #FFD700;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            border: 1px solid rgba(255, 215, 0, 0.3);
+        }
+
+        /* 挑戰進度 */
+        .challenge-progress {
+            margin: 2rem 0;
+        }
+
+        .progress-bar {
+            height: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            overflow: hidden;
+            margin-bottom: 0.5rem;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #1A2B6D 0%, #D52B1E 100%);
+            border-radius: 5px;
+            width: 65%; /* 示例進度 */
+            transition: width 0.5s ease;
+        }
+
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        /* 參與按鈕 */
+        .action-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #1A2B6D 0%, #D52B1E 100%);
+            color: white;
+            padding: 0.8rem 1.5rem;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1rem;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 1rem;
+        }
+
+        .action-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        /* 提示框 */
+        .info-box {
+            background: rgba(255, 215, 0, 0.1);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .info-box h4 {
+            color: #FFD700;
+            font-size: 1.3rem;
+            margin-bottom: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .info-box p {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 1rem;
+        }
+
+        /* 排行榜樣式 */
+        .leaderboard {
+            margin: 2rem 0;
+        }
+
+        .leaderboard-item {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            margin-bottom: 0.8rem;
+            border-left: 4px solid transparent;
+        }
+
+        .leaderboard-item:nth-child(1) {
+            border-left-color: #FFD700;
+            background: rgba(255, 215, 0, 0.1);
+        }
+
+        .leaderboard-item:nth-child(2) {
+            border-left-color: #C0C0C0;
+        }
+
+        .leaderboard-item:nth-child(3) {
+            border-left-color: #CD7F32;
+        }
+
+        .leaderboard-rank {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #FFD700;
+            width: 40px;
+            text-align: center;
+        }
+
+        .leaderboard-info {
+            flex-grow: 1;
+        }
+
+        .leaderboard-name {
+            font-weight: bold;
+            color: white;
+        }
+
+        .leaderboard-score {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.9rem;
+        }
+
+        /* 頁腳 - 在第三區塊下面 */
+        #footer {
+            background-color: rgba(0, 0, 0, 0.8);
+            color: #ddd;
+            position: relative;
+            z-index: 20;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            transform: translateY(50px);
+            opacity: 0;
+            transition: transform 0.8s ease-out, opacity 0.8s ease-out;
+            transition-delay: 0.6s;
+        }
+
+        #footer.visible {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .footer-content {
+            padding: 3rem 1.5rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .footer-section {
+            margin-bottom: 2.5rem;
+        }
+
+        .footer-section h3 {
+            color: #FFD700;
+            font-size: 1.3rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .footer-links {
+            list-style: none;
+        }
+
+        .footer-links li {
+            margin-bottom: 0.8rem;
+        }
+
+        .footer-links a {
+            color: #ddd;
+            text-decoration: none;
+            font-size: 0.8rem;
+            transition: color 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            white-space: nowrap;
+        }
+
+        .footer-links a:hover {
+            color: #FFD700;
+        }
+
+        .footer-links a:before {
+            content: "›";
+            color: #FFD700;
+        }
+
+        .contact-text {
+            font-size: 0.95rem;
+            line-height: 1.7;
+            margin-bottom: 1.5rem;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .contact-email {
+            display: inline-block;
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 0.8rem 1.2rem;
+            border-radius: 4px;
+            color: #FFD700;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: background-color 0.2s;
+        }
+
+        .contact-email:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .copyright {
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 1.5rem;
+            text-align: center;
+            font-size: 0.9rem;
+            color: #aaa;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* 地球載入提示 */
+        .earth-loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            z-index: 2;
+            text-align: center;
+            font-size: 1.2rem;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 2rem;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            opacity: 0;
+            transition: opacity 0.5s ease-out;
+        }
+
+        .earth-loading.visible {
+            opacity: 1;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #FFD700;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* 輔助類 */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            border: 0;
+        }
+
+        .emergency-badge {
+            display: inline-block;
+            background-color: #D52B1E;
+            color: white;
+            font-size: 0.8rem;
+            padding: 0.2rem 0.6rem;
+            border-radius: 4px;
+            margin-left: 0.5rem;
+            font-weight: bold;
+        }
+
+        /* 提示框 */
+        .tooltip {
+            position: absolute;
+            padding: 0.75rem 1rem;
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            pointer-events: none;
+            z-index: 100;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            max-width: 250px;
+            display: none;
+        }
+
+        /* 暫無內容提示 */
+        .placeholder-content {
+            text-align: center;
+            padding: 3rem;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 12px;
+            border: 2px dashed rgba(255, 215, 0, 0.3);
+            margin: 2rem 0;
+        }
+
+        .placeholder-content h3 {
+            color: #FFD700;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .placeholder-content p {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 1.1rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* 挑戰賽獎章 */
+        .badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #1A2B6D 0%, #D52B1E 100%);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            margin: 0.3rem 0.5rem 0.3rem 0;
+        }
+
+        /* 時間軸 */
+        .timeline {
+            margin: 2rem 0;
+            position: relative;
+        }
+
+        .timeline:before {
+            content: '';
+            position: absolute;
+            left: 20px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .timeline-item {
+            position: relative;
+            padding-left: 50px;
+            margin-bottom: 2rem;
+        }
+
+        .timeline-marker {
+            position: absolute;
+            left: 10px;
+            top: 0;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: #FFD700;
+            border: 4px solid rgba(0, 0, 0, 0.7);
+        }
+
+        .timeline-content h4 {
+            color: #FFD700;
+            font-size: 1.2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .timeline-content p {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 1rem;
+        }
+
+        /* 桌面適配 (移動優先) */
+        @media (min-width: 768px) {
+            html {
+                font-size: 18px;
+            }
+
+            .logo {
+                font-size: 1.3rem;
+            }
+
+            .content-section {
+                padding: 3rem 2rem;
+                margin-top: 100px;
+            }
+
+            .page-title {
+                font-size: 2.5rem;
+            }
+
+            .page-subtitle {
+                font-size: 1.4rem;
+            }
+
+            .content-card {
+                padding: 3rem;
+            }
+
+            .footer-content {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 3rem;
+            }
+            
+            .footer-links a {
+                font-size: 0.85rem;
+            }
+            
+            .challenge-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .content-section {
+                padding: 4rem 3rem;
+            }
+
+            .page-title {
+                font-size: 2.8rem;
+            }
+            
+            .footer-content {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 4rem;
+            }
+            
+            .challenge-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (max-width: 767px) {
+            .challenge-grid {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+
+            .placeholder-content {
+                padding: 2rem 1rem;
+            }
+            
+            .footer-links a {
+                font-size: 0.75rem;
+                white-space: normal;
+            }
+            
+            .theme-tags {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 導航欄 - 初始隱藏 -->
+    <header class="header" id="header">
+        <nav class="navbar" aria-label="主導航">
+            <!-- 修改：標題現在點擊後返回主頁 -->
+            <a href="index.html" class="logo">
+                <span>領事保護與居民權利</span>
+            </a>
+            <button class="menu-toggle" aria-expanded="false" aria-controls="side-menu">
+                ☰
+                <span class="sr-only">導航菜單</span>
+            </button>
+        </nav>
+    </header>
+
+    <!-- 側邊菜單遮罩 -->
+    <div class="menu-overlay" id="menu-overlay"></div>
+
+    <!-- 側邊菜單 - 從consular-protection複製 -->
+    <aside class="side-menu" id="side-menu">
+        <div class="menu-header">
+            <h2>領事保護與居民權利</h2>
+            <p>您的海外安全守護者</p>
+        </div>
+        
+        <!-- 語言選擇器 - 移動到菜單頂部 -->
+        <div class="lang-selector">
+            <button class="lang-btn" data-lang="zh-hant" onclick="switchLanguage('zh-hant')">繁</button>
+            <button class="lang-btn" data-lang="zh-hans" onclick="switchLanguage('zh-hans')">简</button>
+            <button class="lang-btn" data-lang="pt" onclick="switchLanguage('pt')">PT</button>
+        </div>
+        
+        <div class="menu-content">
+            <div class="menu-section">
+                <h3>特色活動</h3>
+                <a href="weekly-challenge_zh-hant.html" class="menu-item">
+                    <span class="menu-item-icon">⭐</span>
+                    <span>「領保之星」每週主題挑戰賽</span>
+                </a>
+                <a href="safety-quiz_zh-hant.html" class="menu-item">
+                      <span class="menu-item-icon">📊</span>
+                     <span>「海外旅行安全指數」小測試</span>
+                </a>
+            </div>
+            
+            <div class="menu-section">
+                <h3>緊急服務</h3>
+                <a href="emergency_zh-hant.html" class="menu-item">
+                    <span class="menu-item-icon">🚨</span>
+                    <span>緊急求助專區 <span class="emergency-badge">24小時</span></span>
+                </a>
+                <a href="upcoming-trip_zh-hant.html" class="menu-item">
+                    <span class="menu-item-icon">✈️</span>
+                    <span>「我即將出國」專區</span>
+                </a>
+                <a href="overseas-difficulty_zh-hant.html" class="menu-item">
+                    <span class="menu-item-icon">🆘</span>
+                    <span>「我在海外遇到困難」專區</span>
+                </a>
+            </div>
+            
+            <div class="menu-section">
+                <h3>資訊資源</h3>
+                <a href="risk-map_zh-hant.html" class="menu-item">
+                    <span class="menu-item-icon">🗺️</span>
+                    <span>全球風險地圖</span>
+                </a>
+                <a href="podcast_zh-hant.html" class="menu-item">
+                    <span class="menu-item-icon">🎧</span>
+                    <span>播客集</span>
+                </a>
+                <a href="short-videos_zh-hant.html" class="menu-item">
+                    <span class="menu-item-icon">🎬</span>
+                    <span>一分鐘短片集</span>
+                </a>
+                <a href="resources_zh-hant.html" class="menu-item">
+                    <span class="menu-item-icon">📚</span>
+                    <span>資源專區</span>
+                </a>
+            </div>
+            
+            <div class="menu-section">
+                <h3>專區服務</h3>
+                <a href="emergency_zh-hant.html" class="menu-item">
+                    <span class="menu-item-icon">🚨</span>
+                    <span>緊急求助專區</span>
+                </a>
+                <a href="consular-protection_zh-hant.html" class="menu-item">
+                    <span class="menu-item-icon">🛡️</span>
+                    <span>領事保護與協助專區</span>
+                </a>
+                <a href="rights_zh-hant.html" class="menu-item">
+                    <span class="menu-item-icon">📋</span>
+                    <span>居民身份權利專區</span>
+                </a>
+                <a href="schedule_zh-hant.html" class="menu-item">
+                    <span class="menu-item-icon">📅</span>
+                    <span>活動日程</span>
+                </a>
+            </div>
+        </div>
+    </aside>
+
+    <!-- 主內容區域 -->
+    <main class="main-container">
+        <!-- 地球區域 - 全畫面背景 -->
+        <section class="earth-section">
+            <!-- 地球容器 -->
+            <div id="globe-container">
+                <svg id="globe"></svg>
+
+                <!-- 地球載入提示 -->
+                <div class="earth-loading" id="earth-loading">
+                    <div class="loading-spinner"></div>
+                    正在載入全球地圖...
+                </div>
+            </div>
+        </section>
+
+        <!-- 內容區域 -->
+        <section class="content-section" id="content-section">
+            <h1 class="page-title">「領保之星」每週主題挑戰賽</h1>
+            <p class="page-subtitle">透過有趣挑戰，學習領事保護知識，成為海外安全專家！</p>
+            
+            <!-- 挑戰賽介紹卡片 -->
+            <div class="content-card">
+                <h2>挑戰賽簡介</h2>
+                <p>「領保之星」每週主題挑戰賽是一項旨在提升公眾對領事保護知識認識的互動活動。每週我們會推出不同主題的挑戰，參與者透過完成任務學習海外安全知識，並有機會贏得獎勵。</p>
+                
+                <div class="theme-tags">
+                    <span class="theme-tag">#海外安全知識</span>
+                    <span class="theme-tag">#領事保護</span>
+                    <span class="theme-tag">#互動學習</span>
+                    <span class="theme-tag">#每週挑戰</span>
+                    <span class="theme-tag">#獎勵活動</span>
+                </div>
+                
+                <!-- 當前挑戰進度 -->
+                <div class="challenge-progress">
+                    <h3>本週挑戰進度</h3>
+                    <div class="progress-bar">
+                        <div class="progress-fill"></div>
+                    </div>
+                    <div class="progress-info">
+                        <span>已進行：4天</span>
+                        <span>剩餘：3天</span>
+                    </div>
+                </div>
+                
+                <div class="info-box">
+                    <h4>⚠️ 重要提醒</h4>
+                    <p>本挑戰賽旨在教育與娛樂，所有答案和任務設計均基於真實領事保護知識。完成挑戰可獲得積分，累積積分可兌換獎勵或參加年度「領保之星」評選。</p>
+                </div>
+                
+                <a href="#current-challenge" class="action-button">立即參與本週挑戰</a>
+            </div>
+            
+            <!-- 當前挑戰 -->
+            <div class="content-card" id="current-challenge">
+                <h2>🏆 本週挑戰：海外緊急情況應對</h2>
+                <p><strong>挑戰期間：</strong>2025年4月15日 - 2025年4月21日</p>
+                <p><strong>挑戰主題：</strong>學習如何在海外遇到緊急情況時正確應對，包括自然災害、醫療急症、證件丟失等情況。</p>
+                
+                <h3>挑戰任務</h3>
+                <ol>
+                    <li><strong>知識問答：</strong>完成10道關於海外緊急情況應對的選擇題</li>
+                    <li><strong>情境模擬：</strong>在虛擬情境中做出正確的應對選擇</li>
+                    <li><strong>創意分享：</strong>分享一個你學到的緊急應對技巧（可選擇文字、圖片或短視頻形式）</li>
+                </ol>
+                
+                <div class="challenge-grid">
+                    <div class="challenge-card">
+                        <h4>📝 任務一：知識問答</h4>
+                        <p>完成10道選擇題，測試您對海外緊急情況應對的知識掌握程度。</p>
+                        <span class="badge">積分：30分</span>
+                    </div>
+                    
+                    <div class="challenge-card">
+                        <h4>🎮 任務二：情境模擬</h4>
+                        <p>在虛擬的海外緊急情境中，選擇正確的應對步驟，體驗真實決策過程。</p>
+                        <span class="badge">積分：40分</span>
+                    </div>
+                    
+                    <div class="challenge-card">
+                        <h4>💡 任務三：創意分享</h4>
+                        <p>分享您學到的緊急應對技巧，幫助更多人了解海外安全知識。</p>
+                        <span class="badge">積分：30分</span>
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 1rem; margin-top: 2rem; flex-wrap: wrap;">
+                    <button class="action-button" onclick="startChallenge()">開始挑戰</button>
+                    <a href="#leaderboard" class="action-button">查看排行榜</a>
+                </div>
+            </div>
+            
+            <!-- 時間軸：即將到來的挑戰 -->
+            <div class="content-card">
+                <h2>📅 未來挑戰主題預告</h2>
+                <p>以下是未來幾週的挑戰主題預告，敬請期待！</p>
+                
+                <div class="timeline">
+                    <div class="timeline-item">
+                        <div class="timeline-marker"></div>
+                        <div class="timeline-content">
+                            <h4>第17週：證件安全與補辦流程</h4>
+                            <p>學習如何保護旅行證件，以及在海外遺失證件時的正確補辦流程。</p>
+                            <span class="badge">4月22日開始</span>
+                        </div>
+                    </div>
+                    
+                    <div class="timeline-item">
+                        <div class="timeline-marker"></div>
+                        <div class="timeline-content">
+                            <h4>第18週：跨文化交流與禮儀</h4>
+                            <p>了解不同文化背景下的禮儀差異，避免文化誤解和衝突。</p>
+                            <span class="badge">4月29日開始</span>
+                        </div>
+                    </div>
+                    
+                    <div class="timeline-item">
+                        <div class="timeline-marker"></div>
+                        <div class="timeline-content">
+                            <h4>第19週：海外醫療與健康保障</h4>
+                            <p>掌握海外就醫流程、醫療保險使用和常見健康問題的應對方法。</p>
+                            <span class="badge">5月6日開始</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 排行榜 -->
+            <div class="content-card" id="leaderboard">
+                <h2>🏅 本週排行榜</h2>
+                <p>看看誰是本週的「領保之星」！排行榜每小時更新一次。</p>
+                
+                <div class="leaderboard">
+                    <div class="leaderboard-item">
+                        <div class="leaderboard-rank">1</div>
+                        <div class="leaderboard-info">
+                            <div class="leaderboard-name">安全達人小王</div>
+                            <div class="leaderboard-score">積分：285分 | 已完成：3/3任務</div>
+                        </div>
+                    </div>
+                    
+                    <div class="leaderboard-item">
+                        <div class="leaderboard-rank">2</div>
+                        <div class="leaderboard-info">
+                            <div class="leaderboard-name">旅行專家小李</div>
+                            <div class="leaderboard-score">積分：270分 | 已完成：3/3任務</div>
+                        </div>
+                    </div>
+                    
+                    <div class="leaderboard-item">
+                        <div class="leaderboard-rank">3</div>
+                        <div class="leaderboard-info">
+                            <div class="leaderboard-name">海外學子小陳</div>
+                            <div class="leaderboard-score">積分：255分 | 已完成：3/3任務</div>
+                        </div>
+                    </div>
+                    
+                    <div class="leaderboard-item">
+                        <div class="leaderboard-rank">4</div>
+                        <div class="leaderboard-info">
+                            <div class="leaderboard-name">領保愛好者小林</div>
+                            <div class="leaderboard-score">積分：240分 | 已完成：2/3任務</div>
+                        </div>
+                    </div>
+                    
+                    <div class="leaderboard-item">
+                        <div class="leaderboard-rank">5</div>
+                        <div class="leaderboard-info">
+                            <div class="leaderboard-name">新星參與者小張</div>
+                            <div class="leaderboard-score">積分：225分 | 已完成：2/3任務</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="info-box">
+                    <h4>🏆 年度「領保之星」評選</h4>
+                    <p>每月積分最高的前10名參與者將進入月度排行榜，年度總積分最高的3位參與者將獲得「年度領保之星」榮譽稱號及特別獎勵！</p>
+                </div>
+            </div>
+            
+            <!-- 獎勵機制 -->
+            <div class="content-card">
+                <h2>🎁 挑戰賽獎勵機制</h2>
+                <p>參與挑戰賽不僅可以學習知識，還有機會獲得豐富獎勵！</p>
+                
+                <div class="challenge-grid">
+                    <div class="challenge-card">
+                        <h4>🏅 積分獎勵</h4>
+                        <p>每完成一個任務可獲得相應積分，積分可累計並兌換獎品。</p>
+                    </div>
+                    
+                    <div class="challenge-card">
+                        <h4>📜 成就徽章</h4>
+                        <p>完成特定挑戰可解鎖專屬成就徽章，展示在個人資料中。</p>
+                    </div>
+                    
+                    <div class="challenge-card">
+                        <h4>🎫 參與證書</h4>
+                        <p>每月完成所有挑戰的參與者將獲得電子參與證書。</p>
+                    </div>
+                </div>
+                
+                <h3>積分兌換獎品</h3>
+                <ul>
+                    <li><strong>500積分：</strong>領事保護知識手冊（電子版）</li>
+                    <li><strong>1000積分：</strong>旅行安全套裝（便攜急救包）</li>
+                    <li><strong>2000積分：</strong>線上領事保護專家諮詢一次</li>
+                    <li><strong>5000積分：</strong>年度「領保之星」榮譽證書及特別獎品</li>
+                </ul>
+                
+                <div style="display: flex; gap: 1rem; margin-top: 2rem; flex-wrap: wrap;">
+                    <button class="action-button" onclick="showRewards()">查看我的積分與獎勵</button>
+                    <a href="index.html" class="action-button">返回主頁</a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 頁腳 -->
+    <footer id="footer" class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h3>相關連結</h3>
+                <ul class="footer-links">
+                    <li><a href="https://www.fmprc.gov.cn/web/" target="_blank">中華人民共和國外交部</a></li>
+                    <li><a href="https://portaldascomunidades.mne.gov.pt/pt/" target="_blank">葡萄牙共和國外交部</a></li>
+                    <li><a href="https://cs.mfa.gov.cn/" target="_blank">中國領事服務網</a></li>
+                    <li><a href="https://mo.ocmfa.gov.cn/chn/" target="_blank">中華人民共和國外交部駐澳門特別行政區特派員公署</a></li>
+                    <li><a href="https://www.gov.mo/zh-hant/" target="_blank">澳門特別行政區政府入口網站</a></li>
+                    <li><a href="https://www.dsi.gov.mo/index_cn.jsp" target="_blank">澳門特別行政區政府身份證明局</a></li>
+                    <li><a href="https://www.elctp.k12.edu.mo/elctp/" target="_blank">澳門中葡職業技術學校</a></li>
+                </ul>
+            </div>
+            
+            <div class="footer-section">
+                <h3>聯絡我們</h3>
+                <p class="contact-text">
+                    本網站由一群中學生自主開發，旨在增進公眾對領事保護、協助服務及居民身份權利的認識與關注。由於團隊成員學業繁忙，網站信息將不定期更新與維護，如有不便，敬請理解。
+                    <br><br>
+                    我們誠摯歡迎您對網站用戶界面提出寶貴意見，若發現信息有誤也歡迎指正。
+                </p>
+                <a href="mailto:infodoprogramaem2526@gmail.com" class="contact-email">infodoprogramaem2526@gmail.com</a>
+            </div>
+        </div>
+        
+        <div class="copyright">
+            © 2025-2026 中葡職業技術學校高三翻譯宣傳領事保護與協助和居民權利小組（Escudos de Quíron） 版權所有
+        </div>
+    </footer>
+
+    <!-- 提示框 -->
+    <div class="tooltip" id="tooltip"></div>
+
+    <script>
+        // ==================== 语言映射表 ====================
+        const translationMap = {
+            // 繁体页面 (zh-hant) 为基准
+            "index.html": {
+                "zh-hans": "index_zh-hans.html",
+                "pt": "index_pt.html"
+            },
+            "emergency_zh-hant.html": {
+                "zh-hans": "emergency_zh-hans.html",
+                "pt": "emergency_pt.html"
+            },
+            "upcoming-trip_zh-hant.html": {
+                "zh-hans": "upcoming-trip_zh-hans.html",
+                "pt": "upcoming-trip_pt.html"
+            },
+            "overseas-difficulty_zh-hant.html": {
+                "zh-hans": "overseas-difficulty_zh-hans.html",
+                "pt": "overseas-difficulty_pt.html"
+            },
+            "risk-map_zh-hant.html": {
+                "zh-hans": "risk-map_zh-hans.html",
+                "pt": "risk-map_pt.html"
+            },
+            "podcast_zh-hant.html": {
+                "zh-hans": "podcast_zh-hans.html",
+                "pt": "podcast_pt.html"
+            },
+            "short-videos_zh-hant.html": {
+                "zh-hans": "short-videos_zh-hans.html",
+                "pt": "short-videos_pt.html"
+            },
+            "resources_zh-hant.html": {
+                "zh-hans": "resources_zh-hans.html",
+                "pt": "resources_pt.html"
+            },
+            "consular-protection_zh-hant.html": {
+                "zh-hans": "consular-protection_zh-hans.html",
+                "pt": "consular-protection_pt.html"
+            },
+            "rights_zh-hant.html": {
+                "zh-hans": "rights_zh-hans.html",
+                "pt": "rights_pt.html"
+            },
+            "schedule_zh-hant.html": {
+                "zh-hans": "schedule_zh-hans.html",
+                "pt": "schedule_pt.html"
+            },
+            "weekly-challenge_zh-hant.html": {
+                "zh-hans": "weekly-challenge_zh-hans.html",
+                "pt": "weekly-challenge_pt.html"
+            },
+            "safety-quiz_zh-hant.html": {
+                "zh-hans": "safety-quiz_zh-hans.html",
+                "pt": "safety-quiz_pt.html"
+            },
+            
+            // 简体页面 (zh-hans) 为基准
+            "index_zh-hans.html": {
+                "zh-hant": "index.html",
+                "pt": "index_pt.html"
+            },
+            "emergency_zh-hans.html": {
+                "zh-hant": "emergency_zh-hant.html",
+                "pt": "emergency_pt.html"
+            },
+            "upcoming-trip_zh-hans.html": {
+                "zh-hant": "upcoming-trip_zh-hant.html",
+                "pt": "upcoming-trip_pt.html"
+            },
+            "overseas-difficulty_zh-hans.html": {
+                "zh-hant": "overseas-difficulty_zh-hant.html",
+                "pt": "overseas-difficulty_pt.html"
+            },
+            "risk-map_zh-hans.html": {
+                "zh-hant": "risk-map_zh-hant.html",
+                "pt": "risk-map_pt.html"
+            },
+            "podcast_zh-hans.html": {
+                "zh-hant": "podcast_zh-hant.html",
+                "pt": "podcast_pt.html"
+            },
+            "short-videos_zh-hans.html": {
+                "zh-hant": "short-videos_zh-hant.html",
+                "pt": "short-videos_pt.html"
+            },
+            "resources_zh-hans.html": {
+                "zh-hant": "resources_zh-hant.html",
+                "pt": "resources_pt.html"
+            },
+            "consular-protection_zh-hans.html": {
+                "zh-hant": "consular-protection_zh-hant.html",
+                "pt": "consular-protection_pt.html"
+            },
+            "rights_zh-hans.html": {
+                "zh-hant": "rights_zh-hant.html",
+                "pt": "rights_pt.html"
+            },
+            "schedule_zh-hans.html": {
+                "zh-hant": "schedule_zh-hant.html",
+                "pt": "schedule_pt.html"
+            },
+            "weekly-challenge_zh-hans.html": {
+                "zh-hant": "weekly-challenge_zh-hant.html",
+                "pt": "weekly-challenge_pt.html"
+            },
+            "safety-quiz_zh-hans.html": {
+                "zh-hant": "safety-quiz_zh-hant.html",
+                "pt": "safety-quiz_pt.html"
+            },
+            
+            // 葡文页面 (pt) 为基准
+            "index_pt.html": {
+                "zh-hant": "index.html",
+                "zh-hans": "index_zh-hans.html"
+            },
+            "emergency_pt.html": {
+                "zh-hant": "emergency_zh-hant.html",
+                "zh-hans": "emergency_zh-hans.html"
+            },
+            "upcoming-trip_pt.html": {
+                "zh-hant": "upcoming-trip_zh-hant.html",
+                "zh-hans": "upcoming-trip_zh-hans.html"
+            },
+            "overseas-difficulty_pt.html": {
+                "zh-hant": "overseas-difficulty_zh-hant.html",
+                "zh-hans": "overseas-difficulty_zh-hans.html"
+            },
+            "risk-map_pt.html": {
+                "zh-hant": "risk-map_zh-hant.html",
+                "zh-hans": "risk-map_zh-hans.html"
+            },
+            "podcast_pt.html": {
+                "zh-hant": "podcast_zh-hant.html",
+                "zh-hans": "podcast_zh-hans.html"
+            },
+            "short-videos_pt.html": {
+                "zh-hant": "short-videos_zh-hant.html",
+                "zh-hans": "short-videos_zh-hans.html"
+            },
+            "resources_pt.html": {
+                "zh-hant": "resources_zh-hant.html",
+                "zh-hans": "resources_zh-hans.html"
+            },
+            "consular-protection_pt.html": {
+                "zh-hant": "consular-protection_zh-hant.html",
+                "zh-hans": "consular-protection_zh-hans.html"
+            },
+            "rights_pt.html": {
+                "zh-hant": "rights_zh-hant.html",
+                "zh-hans": "rights_zh-hans.html"
+            },
+            "schedule_pt.html": {
+                "zh-hant": "schedule_zh-hant.html",
+                "zh-hans": "schedule_zh-hans.html"
+            },
+            "weekly-challenge_pt.html": {
+                "zh-hant": "weekly-challenge_zh-hant.html",
+                "zh-hans": "weekly-challenge_zh-hans.html"
+            },
+            "safety-quiz_pt.html": {
+                "zh-hant": "safety-quiz_zh-hant.html",
+                "zh-hans": "safety-quiz_zh-hans.html"
+            }
+        };
+
+        // ==================== 语言切换函数 ====================
+        /**
+         * 根据当前页面和目标语言代码进行导航
+         * @param {string} targetLang - 目标语言代码 ('zh-hant', 'zh-hans', 'pt')
+         */
+        function switchLanguage(targetLang) {
+            // 获取当前激活的语言按钮
+            const activeButton = document.querySelector('.lang-btn.active');
+            
+            // 如果点击的按钮已经是激活状态，则直接返回，不执行任何操作
+            if (activeButton && activeButton.getAttribute('data-lang') === targetLang) {
+                console.log(`当前已是${targetLang}语言，无需切换`);
+                return;
+            }
+            
+            // 1. 获取当前页面的文件名
+            const currentPath = window.location.pathname;
+            const currentFileName = currentPath.substring(currentPath.lastIndexOf('/') + 1);
+            
+            console.log(`当前文件: ${currentFileName}, 目标语言: ${targetLang}`);
+            
+            // 2. 在映射表中查找目标链接
+            const currentLangLinks = translationMap[currentFileName];
+            
+            if (currentLangLinks && currentLangLinks[targetLang]) {
+                // 3. 构造完整的目标 URL
+                const targetFileName = currentLangLinks[targetLang];
+                
+                // 获取当前目录路径
+                let basePath = currentPath.substring(0, currentPath.lastIndexOf('/') + 1);
+                if (basePath === '/') basePath = ''; // 如果是在根目录
+                
+                const newUrl = basePath + targetFileName;
+                
+                console.log(`导航到: ${newUrl}`);
+                
+                // 4. 导航到目标页面
+                window.location.href = newUrl;
+            } else {
+                // 如果找不到对应链接
+                console.error(`找不到 ${currentFileName} 对应的 ${targetLang} 语言链接。`);
+                alert('抱歉，该页面的此语言版本暂时不可用。');
+            }
+        }
+
+        // ==================== 挑战赛相关函数 ====================
+        function startChallenge() {
+            alert('挑戰即將開始！\n\n請注意：這是一個示範功能，實際挑戰內容將在完整版中提供。\n\n您可以在日後更新資料時添加真實的挑戰內容。');
+        }
+        
+        function showRewards() {
+            alert('我的積分與獎勵\n\n目前積分：150分\n已解鎖徽章：3個\n可兌換獎品：領事保護知識手冊（電子版）\n\n這是一個示範功能，實際數據將在用戶系統完成後提供。');
+        }
+
+        // 文檔加載完成後初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            const header = document.getElementById('header');
+            const menuToggle = document.querySelector('.menu-toggle');
+            const sideMenu = document.getElementById('side-menu');
+            const menuOverlay = document.getElementById('menu-overlay');
+            const earthLoading = document.getElementById('earth-loading');
+            const contentSection = document.getElementById('content-section');
+            const langButtons = document.querySelectorAll('.lang-btn');
+            const footer = document.getElementById('footer');
+            
+            let lastScrollTop = 0;
+            let isMenuOpen = false;
+            
+            // 滾動監聽變量
+            let isFooterVisible = false;
+            
+            // D3.js 變數
+            let width, height, svg, projection, path, globeGroup, countryPaths;
+            
+            // 自動旋轉控制變數
+            let autoRotate = true;
+            let rotationSpeed = 0.1; // 每幀旋轉角度（緩慢自轉）
+            let animationId = null;
+            
+            // 頁面狀態
+            let isEarthLoaded = false;
+            
+            // 漢堡菜單切換功能
+            function toggleMenu() {
+                isMenuOpen = !isMenuOpen;
+                sideMenu.classList.toggle('active', isMenuOpen);
+                menuOverlay.classList.toggle('active', isMenuOpen);
+                menuToggle.setAttribute('aria-expanded', isMenuOpen);
+                document.body.style.overflow = isMenuOpen ? 'hidden' : '';
+            }
+
+            menuToggle.addEventListener('click', toggleMenu);
+            menuOverlay.addEventListener('click', toggleMenu);
+
+            // 關閉菜單當點擊菜單內的鏈接
+            sideMenu.addEventListener('click', function(e) {
+                if (e.target.tagName === 'A') {
+                    toggleMenu();
+                }
+            });
+
+            // ==================== 语言按钮高亮逻辑 ====================
+            /**
+             * 根据当前页面自动高亮对应的语言按钮
+             */
+            function highlightCurrentLanguage() {
+                // 获取当前页面的文件名
+                const currentPath = window.location.pathname;
+                const currentFileName = currentPath.substring(currentPath.lastIndexOf('/') + 1);
+                
+                console.log(`当前文件名: ${currentFileName}`);
+                
+                // 移除所有按钮的active类
+                langButtons.forEach(btn => btn.classList.remove('active'));
+                
+                // 根据文件名判断当前语言
+                let currentLang = '';
+                
+                if (currentFileName.includes('_zh-hant.html') || currentFileName === 'index.html') {
+                    currentLang = 'zh-hant';
+                } else if (currentFileName.includes('_zh-hans.html')) {
+                    currentLang = 'zh-hans';
+                } else if (currentFileName.includes('_pt.html')) {
+                    currentLang = 'pt';
+                } else {
+                    // 默认情况下，假设是繁体中文
+                    currentLang = 'zh-hant';
+                }
+                
+                // 找到对应语言按钮并添加active类
+                const activeButton = document.querySelector(`.lang-btn[data-lang="${currentLang}"]`);
+                if (activeButton) {
+                    activeButton.classList.add('active');
+                    console.log(`高亮语言按钮: ${currentLang}`);
+                } else {
+                    console.warn(`找不到对应语言按钮: ${currentLang}`);
+                }
+            }
+            
+            // 页面加载时立即调用高亮函数
+            highlightCurrentLanguage();
+
+            // 滾動時隱藏/顯示導航欄和顯示動畫
+            window.addEventListener('scroll', function() {
+                const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+                
+                // 隱藏/顯示導航欄
+                if (!isMenuOpen) {
+                    if (scrollTop > lastScrollTop && scrollTop > 100) {
+                        header.classList.add('hidden');
+                    } else {
+                        header.classList.remove('hidden');
+                    }
+                }
+                
+                // 檢查頁腳是否進入視圖
+                if (!isFooterVisible && scrollTop > window.innerHeight * 0.7) {
+                    footer.classList.add('visible');
+                    isFooterVisible = true;
+                }
+                
+                lastScrollTop = scrollTop;
+            });
+            
+            // 自動旋轉動畫
+            function autoRotateAnimation() {
+                // 始終自動旋轉
+                const rotate = projection.rotate();
+                // 從右向左旋轉（增加經度值）
+                projection.rotate([rotate[0] + rotationSpeed, rotate[1], rotate[2]]);
+                
+                // 更新所有路徑
+                if (countryPaths) {
+                    countryPaths.attr("d", path);
+                    d3.select(".graticule").attr("d", path);
+                    d3.select(".sphere-outline").attr("d", path);
+                }
+                
+                // 繼續動畫循環
+                animationId = requestAnimationFrame(autoRotateAnimation);
+            }
+            
+            // 顯示界面元素 - 從標題列從上往下進入開始
+            function showInterfaceElements() {
+                // 顯示地球載入提示
+                earthLoading.classList.add('visible');
+                
+                // 延遲後顯示標題列（從上往下進入）
+                setTimeout(() => {
+                    header.classList.add('visible');
+                }, 300);
+                
+                // 地球加載完成後顯示內容區域和頁腳
+                if (isEarthLoaded) {
+                    showContentAndFooter();
+                }
+            }
+            
+            // 顯示內容區域和頁腳
+            function showContentAndFooter() {
+                // 顯示內容區域（淡入和上移動畫）
+                setTimeout(() => {
+                    contentSection.classList.add('visible');
+                }, 500);
+                
+                // 顯示頁腳（從下往上淡入）
+                setTimeout(() => {
+                    footer.classList.add('visible');
+                }, 800);
+            }
+            
+            // 初始化D3地球（簡化版，僅用於背景，緩慢自轉）
+            function initEarth() {
+                const container = document.getElementById('globe-container');
+                width = container.clientWidth;
+                height = container.clientHeight;
+                
+                svg = d3.select('#globe')
+                    .attr('width', width)
+                    .attr('height', height);
+                
+                // 設置3D正射投影
+                projection = d3.geoOrthographic()
+                    .scale(Math.min(width, height) / 2.5)
+                    .translate([width / 2, height / 2])
+                    .rotate([-30, -20, 0]) // 固定初始視角
+                    .precision(0.1);
+                
+                path = d3.geoPath(projection);
+                
+                // 創建群組
+                globeGroup = svg.append('g');
+                
+                // 繪製經緯線網格
+                const graticule = d3.geoGraticule();
+                globeGroup.append("path")
+                    .datum(graticule)
+                    .attr("class", "graticule")
+                    .attr("d", path)
+                    .attr("fill", "none")
+                    .attr("stroke", "rgba(255, 255, 255, 0.1)")
+                    .attr("stroke-width", 0.3)
+                    .attr("stroke-dasharray", "2,2");
+                
+                // 載入地圖數據
+                d3.json('https://unpkg.com/world-atlas@2/countries-110m.json')
+                    .then(worldData => {
+                        // 隱藏載入提示
+                        setTimeout(() => {
+                            earthLoading.style.opacity = '0';
+                            setTimeout(() => {
+                                earthLoading.style.display = 'none';
+                                earthLoading.classList.remove('visible');
+                                
+                                // 標記地球已加載
+                                isEarthLoaded = true;
+                                
+                                // 開始緩慢的自轉動畫
+                                autoRotateAnimation();
+                                
+                                // 如果標題列已顯示，則顯示內容區域和頁腳
+                                if (header.classList.contains('visible')) {
+                                    showContentAndFooter();
+                                }
+                                
+                            }, 500);
+                        }, 800);
+                        
+                        const countries = topojson.feature(worldData, worldData.objects.countries).features;
+                        
+                        // 繪製國家 - 簡化版，僅用於背景
+                        countryPaths = globeGroup.selectAll(".country")
+                            .data(countries)
+                            .enter().append("path")
+                            .attr("class", "country")
+                            .attr("d", path)
+                            .attr("fill", "rgba(255, 255, 255, 0.05)")
+                            .attr("stroke", "rgba(255, 255, 255, 0.1)")
+                            .attr("stroke-width", 0.2)
+                            .style("cursor", "default");
+                        
+                        // 繪製地球外輪廓
+                        const sphereOutline = globeGroup.append("path")
+                            .datum({type: "Sphere"})
+                            .attr("class", "sphere-outline")
+                            .attr("d", path)
+                            .attr("fill", "none")
+                            .attr("stroke", "rgba(255, 255, 255, 0.15)")
+                            .attr("stroke-width", 0.5);
+                        
+                    })
+                    .catch(err => {
+                        console.error("載入地圖數據失敗:", err);
+                        earthLoading.innerHTML = `
+                            <div style="color:#e74c3c;">載入地圖數據失敗</div>
+                            <div style="font-size:0.9rem; margin-top:0.5rem;">請檢查網絡連接後刷新頁面</div>
+                        `;
+                        
+                        // 即使載入失敗也標記為已加載並顯示內容
+                        isEarthLoaded = true;
+                        if (header.classList.contains('visible')) {
+                            showContentAndFooter();
+                        }
+                    });
+                
+                // 響應式調整
+                window.addEventListener('resize', function() {
+                    width = container.clientWidth;
+                    height = container.clientHeight;
+                    
+                    svg.attr('width', width).attr('height', height);
+                    
+                    projection
+                        .scale(Math.min(width, height) / 2.5)
+                        .translate([width / 2, height / 2]);
+                    
+                    // 更新所有路徑
+                    if (countryPaths) {
+                        countryPaths.attr("d", path);
+                        d3.select(".graticule").attr("d", path);
+                        d3.select(".sphere-outline").attr("d", path);
+                    }
+                });
+            }
+            
+            // 初始化頁面
+            document.documentElement.lang = 'zh-TW';
+            
+            // 頁面加載後開始初始化流程
+            window.addEventListener('load', function() {
+                // 立即開始顯示界面元素（從標題列開始）
+                showInterfaceElements();
+                
+                // 初始化地球（緩慢自轉背景）
+                setTimeout(initEarth, 500);
+            });
+            
+            // 如果地圖載入失敗的後備方案
+            setTimeout(function() {
+                if (earthLoading.style.display !== 'none') {
+                    earthLoading.innerHTML = "地圖載入失敗，顯示背景圖...<br><small>請檢查網絡連接</small>";
+                    
+                    // 標記地球已加載（失敗狀態）
+                    isEarthLoaded = true;
+                    if (header.classList.contains('visible')) {
+                        showContentAndFooter();
+                    }
+                }
+            }, 10000);
+        });
+    </script>
+</body>
+</html>
