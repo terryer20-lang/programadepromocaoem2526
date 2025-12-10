@@ -372,58 +372,6 @@
             color: #7cfc00;
         }
 
-        /* 地圖控制面板 - 移動到地圖區域內部 */
-        .map-controls-container {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            right: 20px;
-            z-index: 50;
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
-
-        .map-controls {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.8rem;
-            padding: 1rem;
-            background: rgba(0, 0, 0, 0.85);
-            border-radius: 8px;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            max-width: 500px;
-        }
-
-        .filter-btn {
-            padding: 0.6rem 1.2rem;
-            border: none;
-            border-radius: 6px;
-            font-size: 0.9rem;
-            cursor: pointer;
-            transition: all 0.2s;
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
-        }
-
-        .filter-btn.active {
-            background-color: #f6d52a;
-            color: #000000;
-        }
-
-        .risk-high {
-            background-color: rgba(213, 43, 30, 0.8);
-        }
-
-        .risk-medium {
-            background-color: rgba(255, 165, 0, 0.8);
-        }
-
-        .risk-low {
-            background-color: rgba(0, 128, 0, 0.8);
-        }
-
         /* 內容區域 - 在地圖下方 */
         .content-section {
             position: relative;
@@ -893,16 +841,6 @@
                 right: 20px;
                 bottom: 20px;
             }
-
-            .map-controls-container {
-                flex-direction: row;
-                justify-content: space-between;
-                align-items: flex-start;
-            }
-
-            .map-controls {
-                max-width: 300px;
-            }
         }
 
         @media (min-width: 1024px) {
@@ -917,10 +855,6 @@
             .footer-content {
                 grid-template-columns: repeat(2, 1fr);
                 gap: 4rem;
-            }
-
-            .map-controls {
-                max-width: 350px;
             }
         }
 
@@ -951,27 +885,6 @@
 
             .country-info-details {
                 grid-template-columns: 1fr;
-            }
-
-            .map-controls-container {
-                top: 10px;
-                left: 10px;
-                right: 10px;
-            }
-
-            .map-controls {
-                padding: 0.8rem;
-            }
-            
-            .zoom-controls {
-                bottom: 10px;
-                right: 10px;
-            }
-            
-            .zoom-btn {
-                width: 40px;
-                height: 40px;
-                font-size: 1.3rem;
             }
         }
     </style>
@@ -1124,17 +1037,6 @@
                     </div>
                 </div>
             </div>
-            
-            <!-- 地圖控制面板容器 -->
-            <div class="map-controls-container">
-                <!-- 地圖控制面板 -->
-                <div class="map-controls">
-                    <button class="filter-btn active" data-risk="all">全部國家</button>
-                    <button class="filter-btn risk-high" data-risk="High">高風險國家</button>
-                    <button class="filter-btn risk-medium" data-risk="Medium">中風險國家</button>
-                    <button class="filter-btn risk-low" data-risk="Low">低風險國家</button>
-                </div>
-            </div>
         </section>
 
         <!-- 內容區域 -->
@@ -1210,7 +1112,6 @@
                     <h3>如何使用風險地圖</h3>
                     <ol>
                         <li><strong>查看地圖</strong> - 上方為全球風險地圖，顯示各國風險等級</li>
-                        <li><strong>篩選數據</strong> - 使用地圖上方按鈕篩選不同風險等級的國家</li>
                         <li><strong>搜尋國家</strong> - 在搜尋框中輸入國家名稱快速查找</li>
                         <li><strong>查看詳細數據</strong> - 點擊表格中的國家查看詳細風險信息</li>
                         <li><strong>排序表格</strong> - 點擊表頭按不同指標排序數據</li>
@@ -1657,7 +1558,6 @@
             const contentSection = document.getElementById('content-section');
             const langButtons = document.querySelectorAll('.lang-btn');
             const footer = document.getElementById('footer');
-            const filterButtons = document.querySelectorAll('.filter-btn');
             const sortButtons = document.querySelectorAll('.sort-btn');
             const countrySearch = document.getElementById('country-search');
             const riskTableBody = document.getElementById('risk-table-body');
@@ -1685,7 +1585,6 @@
             
             // 風險數據索引
             let riskDataMap = {};
-            let currentFilter = 'all';
             let currentSort = { field: 'country', order: 'asc' };
             let displayedData = [...riskData];
             
@@ -1786,24 +1685,6 @@
                     riskDataMap[country.flagCode] = country;
                 });
                 console.log(`已加載 ${Object.keys(riskDataMap).length} 個國家的風險數據`);
-            }
-            
-            /**
-             * 根據風險等級獲取顏色
-             * @param {string} riskLevel - 風險等級
-             * @returns {string} 顏色值
-             */
-            function getRiskColor(riskLevel) {
-                switch(riskLevel) {
-                    case 'High':
-                        return 'rgba(213, 43, 30, 0.8)'; // 紅色
-                    case 'Medium':
-                        return 'rgba(255, 165, 0, 0.8)'; // 橙色
-                    case 'Low':
-                        return 'rgba(0, 128, 0, 0.8)'; // 綠色
-                    default:
-                        return 'rgba(128, 128, 128, 0.5)'; // 灰色（無數據）
-                }
             }
             
             /**
@@ -1993,28 +1874,6 @@
             }
             
             /**
-             * 篩選數據
-             * @param {string} riskLevel - 風險等級
-             */
-            function filterData(riskLevel) {
-                currentFilter = riskLevel;
-                
-                if (riskLevel === 'all') {
-                    displayedData = [...riskData];
-                } else {
-                    displayedData = riskData.filter(country => 
-                        country.RiskLevelByCountryViaTravelSafe === riskLevel
-                    );
-                }
-                
-                // 應用當前排序
-                sortData(currentSort.field, currentSort.order);
-                
-                // 更新表格
-                updateRiskTable();
-            }
-            
-            /**
              * 排序數據
              * @param {string} field - 排序字段
              * @param {string} order - 排序順序 ('asc' 或 'desc')
@@ -2072,8 +1931,10 @@
              */
             function searchCountries(searchTerm) {
                 if (!searchTerm.trim()) {
-                    // 如果搜尋框為空，恢復當前篩選
-                    filterData(currentFilter);
+                    // 如果搜尋框為空，恢復顯示所有數據
+                    displayedData = [...riskData];
+                    // 應用當前排序
+                    sortData(currentSort.field, currentSort.order);
                     return;
                 }
                 
@@ -2088,6 +1949,15 @@
                 
                 // 更新表格
                 updateRiskTable();
+                
+                // 隱藏國家資訊面板（因為搜尋後選中的國家可能不在搜尋結果中）
+                hideCountryInfo();
+                
+                // 清除選中的行
+                if (selectedRow) {
+                    selectedRow.classList.remove('selected');
+                    selectedRow = null;
+                }
             }
             
             /**
@@ -2153,32 +2023,6 @@
             }
             
             // ==================== 事件監聽器 ====================
-            // 篩選按鈕點擊事件
-            filterButtons.forEach(button => {
-                button.addEventListener('click', function() {
-                    // 移除所有按鈕的active類
-                    filterButtons.forEach(btn => btn.classList.remove('active'));
-                    
-                    // 為當前按鈕添加active類
-                    this.classList.add('active');
-                    
-                    // 獲取風險等級
-                    const riskLevel = this.getAttribute('data-risk');
-                    
-                    // 篩選數據
-                    filterData(riskLevel);
-                    
-                    // 隱藏國家資訊面板（因為篩選後選中的國家可能不在篩選結果中）
-                    hideCountryInfo();
-                    
-                    // 清除選中的行
-                    if (selectedRow) {
-                        selectedRow.classList.remove('selected');
-                        selectedRow = null;
-                    }
-                });
-            });
-            
             // 排序按鈕點擊事件
             sortButtons.forEach(button => {
                 button.addEventListener('click', function() {
@@ -2213,15 +2057,6 @@
             // 搜尋框輸入事件
             countrySearch.addEventListener('input', function() {
                 searchCountries(this.value);
-                
-                // 隱藏國家資訊面板（因為搜尋後選中的國家可能不在搜尋結果中）
-                hideCountryInfo();
-                
-                // 清除選中的行
-                if (selectedRow) {
-                    selectedRow.classList.remove('selected');
-                    selectedRow = null;
-                }
             });
             
             // 關閉國家資訊面板
