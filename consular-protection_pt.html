@@ -1,0 +1,1427 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Área de Proteção e Assistência Consular - Proteção Consular e Direitos dos Residentes</title>
+    <!-- 引入 D3.js 和 TopoJSON -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://unpkg.com/topojson-client@3"></script>
+    <style>
+        /* 基礎重置與移動優先樣式 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            font-size: 16px;
+            scroll-behavior: smooth;
+            height: 100%;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(180deg, #0a0f2e 0%, #1A2B6D 100%);
+            min-height: 100vh;
+        }
+
+        /* 觸控目標至少44px */
+        button, 
+        a, 
+        .menu-toggle,
+        .btn,
+        .lang-btn,
+        .menu-item,
+        .stat-item {
+            min-height: 44px;
+            min-width: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* 導航欄 - 更新背景為hero模板的漸變，初始隱藏並在上方 */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 1000;
+            padding: 0.5rem 1rem;
+            background: linear-gradient(135deg, rgba(26, 43, 109, 0.95) 0%, rgba(213, 43, 30, 0.95) 100%);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+            transition: transform 0.8s ease-out, opacity 0.8s ease-out;
+            transform: translateY(-100%); /* 初始位置：在上方不可見 */
+            opacity: 0;
+            height: 60px;
+        }
+
+        .header.visible {
+            transform: translateY(0); /* 最終位置：在頂部可見 */
+            opacity: 1;
+        }
+
+        .header.hidden {
+            transform: translateY(-100%);
+        }
+
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 100%;
+        }
+
+        .logo {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #FFD700;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .menu-toggle {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #FFD700;
+            padding: 0.5rem;
+            z-index: 1001;
+        }
+
+        /* 側邊菜單 - 更新背景為hero模板的漸變 */
+        .side-menu {
+            position: fixed;
+            top: 0;
+            right: -100%;
+            width: 85%;
+            max-width: 400px;
+            height: 100vh;
+            background: linear-gradient(135deg, #1A2B6D 0%, #D52B1E 100%);
+            box-shadow: -5px 0 25px rgba(0, 0, 0, 0.1);
+            transition: right 0.4s ease-in-out;
+            z-index: 1002;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .side-menu.active {
+            right: 0;
+        }
+
+        .menu-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s;
+            z-index: 1001;
+        }
+
+        .menu-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .menu-header {
+            padding: 1.2rem;
+            background: rgba(0, 0, 0, 0.2);
+            color: white;
+        }
+
+        .menu-header h2 {
+            font-size: 1.2rem;
+            margin-bottom: 0.3rem;
+            color: #FFD700;
+        }
+
+        .menu-header p {
+            opacity: 0.9;
+            font-size: 0.8rem;
+        }
+
+        /* 語言選擇器 - 移動到菜單頂部 */
+        .lang-selector {
+            padding: 1rem;
+            background-color: rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .lang-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: white;
+        }
+
+        .lang-btn.active {
+            background-color: #f6d52a;
+            color: #000000;
+            border-color: #f6d52a;
+        }
+
+        .menu-content {
+            flex: 1;
+            padding: 1.2rem;
+        }
+
+        .menu-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .menu-section h3 {
+            font-size: 1rem;
+            color: #FFD700;
+            margin-bottom: 0.8rem;
+            padding-bottom: 0.3rem;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            padding: 0.6rem 0;
+            color: white;
+            text-decoration: none;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .menu-item:last-child {
+            border-bottom: none;
+        }
+
+        .menu-item:hover {
+            color: #FFD700;
+            padding-left: 0.5rem;
+        }
+
+        .menu-item-icon {
+            width: 25px;
+            text-align: center;
+            margin-right: 0.6rem;
+            font-size: 1rem;
+        }
+
+        /* 主容器 */
+        .main-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 地球容器 - 全畫面作為背景 */
+        .earth-section {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            background: linear-gradient(to bottom, #0a0f2e 0%, #1A2B6D 100%);
+            z-index: -1;
+        }
+
+        #globe-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #globe {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* 內容區域 - 在背景上方 */
+        .content-section {
+            position: relative;
+            z-index: 10;
+            margin-top: 80px;
+            padding: 2rem 1.5rem;
+            color: white;
+            min-height: calc(100vh - 60px);
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.8s ease-out 0.3s, transform 0.8s ease-out 0.3s;
+        }
+
+        .content-section.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* 頁面標題 */
+        .page-title {
+            text-align: center;
+            font-size: 2.2rem;
+            margin-bottom: 2rem;
+            color: #FFD700;
+            position: relative;
+            padding-bottom: 1rem;
+        }
+
+        .page-title:after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 3px;
+            background-color: #D52B1E;
+        }
+
+        /* 內容卡片 */
+        .content-card {
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 12px;
+            padding: 2rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 2rem;
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .content-card h2 {
+            font-size: 1.8rem;
+            color: #FFD700;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .content-card h3 {
+            font-size: 1.4rem;
+            color: #FFD700;
+            margin: 1.5rem 0 1rem;
+        }
+
+        .content-card p {
+            font-size: 1.1rem;
+            line-height: 1.7;
+            margin-bottom: 1rem;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .content-card ul, .content-card ol {
+            padding-left: 2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .content-card li {
+            font-size: 1.1rem;
+            line-height: 1.7;
+            margin-bottom: 0.5rem;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        /* 功能區塊網格 */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .feature-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .feature-card h4 {
+            font-size: 1.3rem;
+            color: #FFD700;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .feature-card p {
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.8);
+            line-height: 1.6;
+        }
+
+        /* 提示框 */
+        .info-box {
+            background: rgba(255, 215, 0, 0.1);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .info-box h4 {
+            color: #FFD700;
+            font-size: 1.3rem;
+            margin-bottom: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .info-box p {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 1rem;
+        }
+
+        /* 按鈕樣式 */
+        .action-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #1A2B6D 0%, #D52B1E 100%);
+            color: white;
+            padding: 0.8rem 1.5rem;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1rem;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 1rem;
+        }
+
+        .action-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        /* 頁腳 - 在第三區塊下面 */
+        #footer {
+            background-color: rgba(0, 0, 0, 0.8);
+            color: #ddd;
+            position: relative;
+            z-index: 20;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            transform: translateY(50px);
+            opacity: 0;
+            transition: transform 0.8s ease-out, opacity 0.8s ease-out;
+            transition-delay: 0.6s;
+        }
+
+        #footer.visible {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .footer-content {
+            padding: 3rem 1.5rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .footer-section {
+            margin-bottom: 2.5rem;
+        }
+
+        .footer-section h3 {
+            color: #FFD700;
+            font-size: 1.3rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .footer-links {
+            list-style: none;
+        }
+
+        .footer-links li {
+            margin-bottom: 0.8rem;
+        }
+
+        .footer-links a {
+            color: #ddd;
+            text-decoration: none;
+            font-size: 0.8rem;
+            transition: color 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            white-space: nowrap;
+        }
+
+        .footer-links a:hover {
+            color: #FFD700;
+        }
+
+        .footer-links a:before {
+            content: "›";
+            color: #FFD700;
+        }
+
+        .contact-text {
+            font-size: 0.95rem;
+            line-height: 1.7;
+            margin-bottom: 1.5rem;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .contact-email {
+            display: inline-block;
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 0.8rem 1.2rem;
+            border-radius: 4px;
+            color: #FFD700;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: background-color 0.2s;
+        }
+
+        .contact-email:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .copyright {
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 1.5rem;
+            text-align: center;
+            font-size: 0.9rem;
+            color: #aaa;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* 地球載入提示 */
+        .earth-loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            z-index: 2;
+            text-align: center;
+            font-size: 1.2rem;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 2rem;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            opacity: 0;
+            transition: opacity 0.5s ease-out;
+        }
+
+        .earth-loading.visible {
+            opacity: 1;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #FFD700;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* 輔助類 */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            border: 0;
+        }
+
+        .emergency-badge {
+            display: inline-block;
+            background-color: #D52B1E;
+            color: white;
+            font-size: 0.8rem;
+            padding: 0.2rem 0.6rem;
+            border-radius: 4px;
+            margin-left: 0.5rem;
+            font-weight: bold;
+        }
+
+        /* 提示框 */
+        .tooltip {
+            position: absolute;
+            padding: 0.75rem 1rem;
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            pointer-events: none;
+            z-index: 100;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            max-width: 250px;
+            display: none;
+        }
+
+        /* 暫無內容提示 */
+        .placeholder-content {
+            text-align: center;
+            padding: 3rem;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 12px;
+            border: 2px dashed rgba(255, 215, 0, 0.3);
+            margin: 2rem 0;
+        }
+
+        .placeholder-content h3 {
+            color: #FFD700;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .placeholder-content p {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 1.1rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* 桌面適配 (移動優先) */
+        @media (min-width: 768px) {
+            html {
+                font-size: 18px;
+            }
+
+            .logo {
+                font-size: 1.3rem;
+            }
+
+            .content-section {
+                padding: 3rem 2rem;
+                margin-top: 100px;
+            }
+
+            .page-title {
+                font-size: 2.5rem;
+            }
+
+            .content-card {
+                padding: 3rem;
+            }
+
+            .footer-content {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 3rem;
+            }
+
+            .notification-date {
+                min-width: 150px;
+            }
+            
+            .footer-links a {
+                font-size: 0.85rem;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .content-section {
+                padding: 4rem 3rem;
+            }
+
+            .page-title {
+                font-size: 2.8rem;
+            }
+            
+            .footer-content {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 4rem;
+            }
+
+            .notification-date {
+                min-width: 180px;
+            }
+        }
+
+        @media (max-width: 767px) {
+            .features-grid {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+
+            .placeholder-content {
+                padding: 2rem 1rem;
+            }
+
+            .notification-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .notification-date {
+                min-width: auto;
+                border-right: none;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+                padding-right: 0;
+                padding-bottom: 0.5rem;
+                margin-bottom: 0.5rem;
+                width: 100%;
+            }
+
+            .notification-content {
+                padding-left: 0;
+            }
+            
+            .footer-links a {
+                font-size: 0.75rem;
+                white-space: normal;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 導航欄 - 初始隱藏 -->
+    <header class="header" id="header">
+        <nav class="navbar" aria-label="Navegação principal">
+            <!-- 修改：標題現在點擊後返回主頁 -->
+            <a href="index_pt.html" class="logo">
+                <span>Proteção Consular e Direitos dos Residentes</span>
+            </a>
+            <button class="menu-toggle" aria-expanded="false" aria-controls="side-menu">
+                ☰
+                <span class="sr-only">Menu de navegação</span>
+            </button>
+        </nav>
+    </header>
+
+    <!-- 側邊菜單遮罩 -->
+    <div class="menu-overlay" id="menu-overlay"></div>
+
+    <!-- 側邊菜單 - 從index_pt複製過來的完整菜單 -->
+    <aside class="side-menu" id="side-menu">
+        <div class="menu-header">
+            <h2>Proteção Consular e Direitos dos Residentes</h2>
+            <p>O seu protetor de segurança no exterior</p>
+        </div>
+        
+        <!-- 語言選擇器 - 移動到菜單頂部 -->
+        <div class="lang-selector">
+            <button class="lang-btn" data-lang="zh-hant" onclick="switchLanguage('zh-hant')">繁</button>
+            <button class="lang-btn" data-lang="zh-hans" onclick="switchLanguage('zh-hans')">简</button>
+            <button class="lang-btn active" data-lang="pt" onclick="switchLanguage('pt')">PT</button>
+        </div>
+        
+        <div class="menu-content">
+            <div class="menu-section">
+                <h3>Atividades Especiais</h3>
+                <a href="weekly-challenge_pt.html" class="menu-item">
+                    <span class="menu-item-icon">⭐</span>
+                    <span>Desafio Temático Semanal "Estrela da Proteção Consular"</span>
+                </a>
+                <a href="safety-quiz_pt.html" class="menu-item">
+                      <span class="menu-item-icon">📊</span>
+                     <span>Quiz "Índice de Segurança em Viagens Internacionais"</span>
+                </a>
+            </div>
+            
+            <div class="menu-section">
+                <h3>Serviços de Emergência</h3>
+                <a href="emergency_pt.html" class="menu-item">
+                    <span class="menu-item-icon">🚨</span>
+                    <span>Área de Pedido de Emergência <span class="emergency-badge">24 horas</span></span>
+                </a>
+                <a href="upcoming-trip_pt.html" class="menu-item">
+                    <span class="menu-item-icon">✈️</span>
+                    <span>Área "Vou Viajar para o Estrangeiro"</span>
+                </a>
+                <a href="overseas-difficulty_pt.html" class="menu-item">
+                    <span class="menu-item-icon">🆘</span>
+                    <span>Área "Estou com Dificuldades no Estrangeiro"</span>
+                </a>
+            </div>
+            
+            <div class="menu-section">
+                <h3>Recursos de Informação</h3>
+                <a href="risk-map_pt.html" class="menu-item">
+                    <span class="menu-item-icon">🗺️</span>
+                    <span>Mapa Global de Riscos</span>
+                </a>
+                <a href="podcast_pt.html" class="menu-item">
+                    <span class="menu-item-icon">🎧</span>
+                    <span>Coleção de Podcasts</span>
+                </a>
+                <a href="short-videos_pt.html" class="menu-item">
+                    <span class="menu-item-icon">🎬</span>
+                    <span>Coleção de Vídeos Curtos</span>
+                </a>
+                <a href="resources_pt.html" class="menu-item">
+                    <span class="menu-item-icon">📚</span>
+                    <span>Área de Recursos</span>
+                </a>
+            </div>
+            
+            <div class="menu-section">
+                <h3>Áreas de Serviço</h3>
+                <a href="emergency_pt.html" class="menu-item">
+                    <span class="menu-item-icon">🚨</span>
+                    <span>Área de Pedido de Emergência</span>
+                </a>
+                <a href="consular-protection_pt.html" class="menu-item">
+                    <span class="menu-item-icon">🛡️</span>
+                    <span>Área de Proteção e Assistência Consular</span>
+                </a>
+                <a href="rights_pt.html" class="menu-item">
+                    <span class="menu-item-icon">📋</span>
+                    <span>Área de Direitos de Identidade do Residentes</span>
+                </a>
+                <a href="schedule_pt.html" class="menu-item">
+                    <span class="menu-item-icon">📅</span>
+                    <span>Calendário de Atividades</span>
+                </a>
+            </div>
+        </div>
+    </aside>
+
+    <!-- 主內容區域 -->
+    <main class="main-container">
+        <!-- 地球區域 - 全畫面背景 -->
+        <section class="earth-section">
+            <!-- 地球容器 -->
+            <div id="globe-container">
+                <svg id="globe"></svg>
+
+                <!-- 地球載入提示 -->
+                <div class="earth-loading" id="earth-loading">
+                    <div class="loading-spinner"></div>
+                    A carregar o mapa global...
+                </div>
+            </div>
+        </section>
+
+        <!-- 內容區域 -->
+        <section class="content-section" id="content-section">
+            <h1 class="page-title">Área de Proteção e Assistência Consular</h1>
+            
+            <!-- 主要內容卡片 -->
+            <div class="content-card">
+                <h2>Conheça os seus direitos no exterior</h2>
+                <p>A proteção consular refere-se à ajuda e proteção que as missões diplomáticas e os postos consulares no exterior lhe prestam de acordo com a lei quando enfrenta dificuldades no estrangeiro. Isto inclui, mas não se limita a: fornecer informações sobre hospitais locais, advogados, intérpretes, etc.; ajudá-lo a contactar familiares no país de origem em caso de acidente; apresentar o seu caso às autoridades locais relevantes quando for alvo de tratamento injusto.</p>
+                
+                <!-- 暫無內容提示 -->
+                <div class="placeholder-content">
+                    <h3>🚧 Conteúdo em preparação</h3>
+                    <p>Esta área está em construção e o conteúdo detalhado será atualizado em breve. Por favor, fique atento às nossas últimas notificações.</p>
+                </div>
+                
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <h4>🛡️ Âmbito da Proteção Consular</h4>
+                        <p>Compreenda a ajuda e os serviços específicos que a proteção consular pode fornecer, garantindo que sabe como procurar ajuda quando enfrentar dificuldades no estrangeiro.</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <h4>📞 Contactos de Emergência</h4>
+                        <p>Telefones de emergência e endereços de embaixadas e consulados em todo o mundo, garantindo que pode contactar as instituições relevantes a tempo quando necessário.</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <h4>📋 Perguntas Frequentes</h4>
+                        <p>Perguntas e respostas comuns sobre proteção consular, ajudando-o a compreender rapidamente informações e procedimentos relevantes.</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <h4>🌍 Guias Específicas por País</h4>
+                        <p>Guias e precauções específicas de proteção consular para diferentes países, ajudando-o a preparar melhor a sua viagem ao estrangeiro.</p>
+                    </div>
+                </div>
+                
+                <div class="info-box">
+                    <h4>⚠️ Lembrete Importante</h4>
+                    <p>A proteção consular não pode substituir a lei local, nem interferir nos processos judiciais locais. Durante a sua estadia no estrangeiro, ainda deve cumprir as leis e regulamentos locais e ser responsável pelas suas próprias ações.</p>
+                </div>
+                
+                <h3>Recursos Relacionados</h3>
+                <p>Os seguintes recursos podem ser úteis para si:</p>
+                <ul>
+                    <li>Centro de Chamadas de Emergência de Proteção e Serviços Consulares Globais do Ministério dos Negócios Estrangeiros: +86-10-12308</li>
+                    <li>Rede de Serviços Consulares da China: cs.mfa.gov.cn</li>
+                    <li>Conta oficial no WeChat "領事直通車" (Autocarro Direto Consular)</li>
+                    <li>Sites oficiais das várias missões diplomáticas e postos consulares no exterior</li>
+                </ul>
+                
+                <a href="index_pt.html" class="action-button">Voltar à página principal</a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 頁腳 -->
+    <footer id="footer" class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h3>Ligações Relacionadas</h3>
+                <ul class="footer-links">
+                    <li><a href="https://www.fmprc.gov.cn/web/" target="_blank">Ministério dos Negócios Estrangeiros da República Popular da China</a></li>
+                    <li><a href="https://portaldascomunidades.mne.gov.pt/pt/" target="_blank">Ministério dos Negócios Estrangeiros da República Portuguesa</a></li>
+                    <li><a href="https://cs.mfa.gov.cn/" target="_blank">Rede de Serviços Consulares da China</a></li>
+                    <li><a href="https://mo.ocmfa.gov.cn/chn/" target="_blank">Comissariado do Ministério dos Negócios Estrangeiros da República Popular da China na RAEM</a></li>
+                    <li><a href="https://www.gov.mo/zh-hant/" target="_blank">Portal do Governo da Região Administrativa Especial de Macau</a></li>
+                    <li><a href="https://www.dsi.gov.mo/index_cn.jsp" target="_blank">Direcção dos Serviços de Identificação da RAEM</a></li>
+                    <li><a href="https://www.elctp.k12.edu.mo/elctp/" target="_blank">Escola Luso-Chinesa Técnico-Profissional de Macau</a></li>
+                </ul>
+            </div>
+            
+            <div class="footer-section">
+                <h3>Contacte-nos</h3>
+                <p class="contact-text">
+                    Este website foi desenvolvido de forma independente por um grupo de estudantes do ensino secundário, com o objetivo de aumentar a consciencialização e atenção do público sobre a proteção e assistência consular, bem como os direitos de identidade dos residentes. Devido à carga académica dos membros da equipa, as informações do website serão atualizadas e mantidas irregularmente. Pedimos desculpa por quaisquer inconvenientes causados.
+                    <br><br>
+                    Damos as boas-vindas a sugestões valiosas sobre a interface do utilizador do website. Se detetar alguma informação incorreta, também agradecemos a correção.
+                </p>
+                <a href="mailto:infodoprogramaem2526@gmail.com" class="contact-email">infodoprogramaem2526@gmail.com</a>
+            </div>
+        </div>
+        
+        <div class="copyright">
+            © 2025-2026 Equipa de Divulgação de Proteção e Assistência Consular e Direitos dos Residentes do 12º Ano da Escola Luso-Chinesa Técnico-Profissional de Macau (Escudos de Quíron) Todos os direitos reservados
+        </div>
+    </footer>
+
+    <!-- 提示框 -->
+    <div class="tooltip" id="tooltip"></div>
+
+    <script>
+        // ==================== 语言映射表 ====================
+        const translationMap = {
+            // 葡萄牙语页面 (pt) 为基准
+            "index_pt.html": {
+                "zh-hant": "index.html",
+                "zh-hans": "index_zh-hans.html"
+            },
+            "emergency_pt.html": {
+                "zh-hant": "emergency_zh-hant.html",
+                "zh-hans": "emergency_zh-hans.html"
+            },
+            "upcoming-trip_pt.html": {
+                "zh-hant": "upcoming-trip_zh-hant.html",
+                "zh-hans": "upcoming-trip_zh-hans.html"
+            },
+            "overseas-difficulty_pt.html": {
+                "zh-hant": "overseas-difficulty_zh-hant.html",
+                "zh-hans": "overseas-difficulty_zh-hans.html"
+            },
+            "risk-map_pt.html": {
+                "zh-hant": "risk-map_zh-hant.html",
+                "zh-hans": "risk-map_zh-hans.html"
+            },
+            "podcast_pt.html": {
+                "zh-hant": "podcast_zh-hant.html",
+                "zh-hans": "podcast_zh-hans.html"
+            },
+            "short-videos_pt.html": {
+                "zh-hant": "short-videos_zh-hant.html",
+                "zh-hans": "short-videos_zh-hans.html"
+            },
+            "resources_pt.html": {
+                "zh-hant": "resources_zh-hant.html",
+                "zh-hans": "resources_zh-hans.html"
+            },
+            "consular-protection_pt.html": {
+                "zh-hant": "consular-protection_zh-hant.html",
+                "zh-hans": "consular-protection_zh-hans.html"
+            },
+            "rights_pt.html": {
+                "zh-hant": "rights_zh-hant.html",
+                "zh-hans": "rights_zh-hans.html"
+            },
+            "schedule_pt.html": {
+                "zh-hant": "schedule_zh-hant.html",
+                "zh-hans": "schedule_zh-hans.html"
+            },
+            "weekly-challenge_pt.html": {
+                "zh-hant": "weekly-challenge_zh-hant.html",
+                "zh-hans": "weekly-challenge_zh-hans.html"
+            },
+            "safety-quiz_pt.html": {
+                "zh-hant": "safety-quiz_zh-hant.html",
+                "zh-hans": "safety-quiz_zh-hans.html"
+            },
+            
+            // 繁体页面 (zh-hant) 为基准
+            "index.html": {
+                "zh-hans": "index_zh-hans.html",
+                "pt": "index_pt.html"
+            },
+            "emergency_zh-hant.html": {
+                "zh-hans": "emergency_zh-hans.html",
+                "pt": "emergency_pt.html"
+            },
+            "upcoming-trip_zh-hant.html": {
+                "zh-hans": "upcoming-trip_zh-hans.html",
+                "pt": "upcoming-trip_pt.html"
+            },
+            "overseas-difficulty_zh-hant.html": {
+                "zh-hans": "overseas-difficulty_zh-hans.html",
+                "pt": "overseas-difficulty_pt.html"
+            },
+            "risk-map_zh-hant.html": {
+                "zh-hans": "risk-map_zh-hans.html",
+                "pt": "risk-map_pt.html"
+            },
+            "podcast_zh-hant.html": {
+                "zh-hans": "podcast_zh-hans.html",
+                "pt": "podcast_pt.html"
+            },
+            "short-videos_zh-hant.html": {
+                "zh-hans": "short-videos_zh-hans.html",
+                "pt": "short-videos_pt.html"
+            },
+            "resources_zh-hant.html": {
+                "zh-hans": "resources_zh-hans.html",
+                "pt": "resources_pt.html"
+            },
+            "consular-protection_zh-hant.html": {
+                "zh-hans": "consular-protection_zh-hans.html",
+                "pt": "consular-protection_pt.html"
+            },
+            "rights_zh-hant.html": {
+                "zh-hans": "rights_zh-hans.html",
+                "pt": "rights_pt.html"
+            },
+            "schedule_zh-hant.html": {
+                "zh-hans": "schedule_zh-hans.html",
+                "pt": "schedule_pt.html"
+            },
+            "weekly-challenge_zh-hant.html": {
+                "zh-hans": "weekly-challenge_zh-hans.html",
+                "pt": "weekly-challenge_pt.html"
+            },
+            "safety-quiz_zh-hant.html": {
+                "zh-hans": "safety-quiz_zh-hans.html",
+                "pt": "safety-quiz_pt.html"
+            },
+            
+            // 简体页面 (zh-hans) 为基准
+            "index_zh-hans.html": {
+                "zh-hant": "index.html",
+                "pt": "index_pt.html"
+            },
+            "emergency_zh-hans.html": {
+                "zh-hant": "emergency_zh-hant.html",
+                "pt": "emergency_pt.html"
+            },
+            "upcoming-trip_zh-hans.html": {
+                "zh-hant": "upcoming-trip_zh-hant.html",
+                "pt": "upcoming-trip_pt.html"
+            },
+            "overseas-difficulty_zh-hans.html": {
+                "zh-hant": "overseas-difficulty_zh-hant.html",
+                "pt": "overseas-difficulty_pt.html"
+            },
+            "risk-map_zh-hans.html": {
+                "zh-hant": "risk-map_zh-hant.html",
+                "pt": "risk-map_pt.html"
+            },
+            "podcast_zh-hans.html": {
+                "zh-hant": "podcast_zh-hant.html",
+                "pt": "podcast_pt.html"
+            },
+            "short-videos_zh-hans.html": {
+                "zh-hant": "short-videos_zh-hant.html",
+                "pt": "short-videos_pt.html"
+            },
+            "resources_zh-hans.html": {
+                "zh-hant": "resources_zh-hant.html",
+                "pt": "resources_pt.html"
+            },
+            "consular-protection_zh-hans.html": {
+                "zh-hant": "consular-protection_zh-hant.html",
+                "pt": "consular-protection_pt.html"
+            },
+            "rights_zh-hans.html": {
+                "zh-hant": "rights_zh-hant.html",
+                "pt": "rights_pt.html"
+            },
+            "schedule_zh-hans.html": {
+                "zh-hant": "schedule_zh-hant.html",
+                "pt": "schedule_pt.html"
+            },
+            "weekly-challenge_zh-hans.html": {
+                "zh-hant": "weekly-challenge_zh-hant.html",
+                "pt": "weekly-challenge_pt.html"
+            },
+            "safety-quiz_zh-hans.html": {
+                "zh-hant": "safety-quiz_zh-hant.html",
+                "pt": "safety-quiz_pt.html"
+            }
+        };
+
+        // ==================== 语言切换函数 ====================
+        /**
+         * 根据当前页面和目标语言代码进行导航
+         * @param {string} targetLang - 目标语言代码 ('zh-hant', 'zh-hans', 'pt')
+         */
+        function switchLanguage(targetLang) {
+            // 获取当前激活的语言按钮
+            const activeButton = document.querySelector('.lang-btn.active');
+            
+            // 如果点击的按钮已经是激活状态，则直接返回，不执行任何操作
+            if (activeButton && activeButton.getAttribute('data-lang') === targetLang) {
+                console.log(`当前已是${targetLang}语言，无需切换`);
+                return;
+            }
+            
+            // 1. 获取当前页面的文件名
+            const currentPath = window.location.pathname;
+            const currentFileName = currentPath.substring(currentPath.lastIndexOf('/') + 1);
+            
+            console.log(`当前文件: ${currentFileName}, 目标语言: ${targetLang}`);
+            
+            // 2. 在映射表中查找目标链接
+            const currentLangLinks = translationMap[currentFileName];
+            
+            if (currentLangLinks && currentLangLinks[targetLang]) {
+                // 3. 构造完整的目标 URL
+                const targetFileName = currentLangLinks[targetLang];
+                
+                // 获取当前目录路径
+                let basePath = currentPath.substring(0, currentPath.lastIndexOf('/') + 1);
+                if (basePath === '/') basePath = ''; // 如果是在根目录
+                
+                const newUrl = basePath + targetFileName;
+                
+                console.log(`导航到: ${newUrl}`);
+                
+                // 4. 导航到目标页面
+                window.location.href = newUrl;
+            } else {
+                // 如果找不到对应链接
+                console.error(`找不到 ${currentFileName} 对应的 ${targetLang} 语言链接。`);
+                alert('抱歉，该页面的此语言版本暂时不可用。');
+            }
+        }
+
+        // 文檔加載完成後初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            const header = document.getElementById('header');
+            const menuToggle = document.querySelector('.menu-toggle');
+            const sideMenu = document.getElementById('side-menu');
+            const menuOverlay = document.getElementById('menu-overlay');
+            const earthLoading = document.getElementById('earth-loading');
+            const contentSection = document.getElementById('content-section');
+            const langButtons = document.querySelectorAll('.lang-btn');
+            const footer = document.getElementById('footer');
+            
+            let lastScrollTop = 0;
+            let isMenuOpen = false;
+            
+            // 滾動監聽變量
+            let isFooterVisible = false;
+            
+            // D3.js 變數
+            let width, height, svg, projection, path, globeGroup, countryPaths;
+            
+            // 自動旋轉控制變數
+            let autoRotate = true;
+            let rotationSpeed = 0.1; // 每幀旋轉角度（緩慢自轉）
+            let animationId = null;
+            
+            // 頁面狀態
+            let isEarthLoaded = false;
+            
+            // 漢堡菜單切換功能
+            function toggleMenu() {
+                isMenuOpen = !isMenuOpen;
+                sideMenu.classList.toggle('active', isMenuOpen);
+                menuOverlay.classList.toggle('active', isMenuOpen);
+                menuToggle.setAttribute('aria-expanded', isMenuOpen);
+                document.body.style.overflow = isMenuOpen ? 'hidden' : '';
+            }
+
+            menuToggle.addEventListener('click', toggleMenu);
+            menuOverlay.addEventListener('click', toggleMenu);
+
+            // 關閉菜單當點擊菜單內的鏈接
+            sideMenu.addEventListener('click', function(e) {
+                if (e.target.tagName === 'A') {
+                    toggleMenu();
+                }
+            });
+
+            // ==================== 语言按钮高亮逻辑 ====================
+            /**
+             * 根据当前页面自动高亮对应的语言按钮
+             */
+            function highlightCurrentLanguage() {
+                // 获取当前页面的文件名
+                const currentPath = window.location.pathname;
+                const currentFileName = currentPath.substring(currentPath.lastIndexOf('/') + 1);
+                
+                console.log(`当前文件名: ${currentFileName}`);
+                
+                // 移除所有按钮的active类
+                langButtons.forEach(btn => btn.classList.remove('active'));
+                
+                // 根据文件名判断当前语言
+                let currentLang = '';
+                
+                if (currentFileName.includes('_zh-hant.html') || currentFileName === 'index.html') {
+                    currentLang = 'zh-hant';
+                } else if (currentFileName.includes('_zh-hans.html')) {
+                    currentLang = 'zh-hans';
+                } else if (currentFileName.includes('_pt.html') || currentFileName === 'consular-protection_pt.html') {
+                    currentLang = 'pt';
+                } else {
+                    // 默认情况下，假设是葡萄牙语
+                    currentLang = 'pt';
+                }
+                
+                // 找到对应语言按钮并添加active类
+                const activeButton = document.querySelector(`.lang-btn[data-lang="${currentLang}"]`);
+                if (activeButton) {
+                    activeButton.classList.add('active');
+                    console.log(`高亮语言按钮: ${currentLang}`);
+                } else {
+                    console.warn(`找不到对应语言按钮: ${currentLang}`);
+                }
+            }
+            
+            // 页面加载时立即调用高亮函数
+            highlightCurrentLanguage();
+
+            // 滾動時隱藏/顯示導航欄和顯示動畫
+            window.addEventListener('scroll', function() {
+                const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+                
+                // 隱藏/顯示導航欄
+                if (!isMenuOpen) {
+                    if (scrollTop > lastScrollTop && scrollTop > 100) {
+                        header.classList.add('hidden');
+                    } else {
+                        header.classList.remove('hidden');
+                    }
+                }
+                
+                // 檢查頁腳是否進入視圖
+                if (!isFooterVisible && scrollTop > window.innerHeight * 0.7) {
+                    footer.classList.add('visible');
+                    isFooterVisible = true;
+                }
+                
+                lastScrollTop = scrollTop;
+            });
+            
+            // 自動旋轉動畫
+            function autoRotateAnimation() {
+                // 始終自動旋轉
+                const rotate = projection.rotate();
+                // 從右向左旋轉（增加經度值）
+                projection.rotate([rotate[0] + rotationSpeed, rotate[1], rotate[2]]);
+                
+                // 更新所有路徑
+                if (countryPaths) {
+                    countryPaths.attr("d", path);
+                    d3.select(".graticule").attr("d", path);
+                    d3.select(".sphere-outline").attr("d", path);
+                }
+                
+                // 繼續動畫循環
+                animationId = requestAnimationFrame(autoRotateAnimation);
+            }
+            
+            // 顯示界面元素 - 從標題列從上往下進入開始
+            function showInterfaceElements() {
+                // 顯示地球載入提示
+                earthLoading.classList.add('visible');
+                
+                // 延遲後顯示標題列（從上往下進入）
+                setTimeout(() => {
+                    header.classList.add('visible');
+                }, 300);
+                
+                // 地球加載完成後顯示內容區域和頁腳
+                if (isEarthLoaded) {
+                    showContentAndFooter();
+                }
+            }
+            
+            // 顯示內容區域和頁腳
+            function showContentAndFooter() {
+                // 顯示內容區域（淡入和上移動畫）
+                setTimeout(() => {
+                    contentSection.classList.add('visible');
+                }, 500);
+                
+                // 顯示頁腳（從下往上淡入）
+                setTimeout(() => {
+                    footer.classList.add('visible');
+                }, 800);
+            }
+            
+            // 初始化D3地球（簡化版，僅用於背景，緩慢自轉）
+            function initEarth() {
+                const container = document.getElementById('globe-container');
+                width = container.clientWidth;
+                height = container.clientHeight;
+                
+                svg = d3.select('#globe')
+                    .attr('width', width)
+                    .attr('height', height);
+                
+                // 設置3D正射投影
+                projection = d3.geoOrthographic()
+                    .scale(Math.min(width, height) / 2.5)
+                    .translate([width / 2, height / 2])
+                    .rotate([-30, -20, 0]) // 固定初始視角
+                    .precision(0.1);
+                
+                path = d3.geoPath(projection);
+                
+                // 創建群組
+                globeGroup = svg.append('g');
+                
+                // 繪製經緯線網格
+                const graticule = d3.geoGraticule();
+                globeGroup.append("path")
+                    .datum(graticule)
+                    .attr("class", "graticule")
+                    .attr("d", path)
+                    .attr("fill", "none")
+                    .attr("stroke", "rgba(255, 255, 255, 0.1)")
+                    .attr("stroke-width", 0.3)
+                    .attr("stroke-dasharray", "2,2");
+                
+                // 載入地圖數據
+                d3.json('https://unpkg.com/world-atlas@2/countries-110m.json')
+                    .then(worldData => {
+                        // 隱藏載入提示
+                        setTimeout(() => {
+                            earthLoading.style.opacity = '0';
+                            setTimeout(() => {
+                                earthLoading.style.display = 'none';
+                                earthLoading.classList.remove('visible');
+                                
+                                // 標記地球已加載
+                                isEarthLoaded = true;
+                                
+                                // 開始緩慢的自轉動畫
+                                autoRotateAnimation();
+                                
+                                // 如果標題列已顯示，則顯示內容區域和頁腳
+                                if (header.classList.contains('visible')) {
+                                    showContentAndFooter();
+                                }
+                                
+                            }, 500);
+                        }, 800);
+                        
+                        const countries = topojson.feature(worldData, worldData.objects.countries).features;
+                        
+                        // 繪製國家 - 簡化版，僅用於背景
+                        countryPaths = globeGroup.selectAll(".country")
+                            .data(countries)
+                            .enter().append("path")
+                            .attr("class", "country")
+                            .attr("d", path)
+                            .attr("fill", "rgba(255, 255, 255, 0.05)")
+                            .attr("stroke", "rgba(255, 255, 255, 0.1)")
+                            .attr("stroke-width", 0.2)
+                            .style("cursor", "default");
+                        
+                        // 繪製地球外輪廓
+                        const sphereOutline = globeGroup.append("path")
+                            .datum({type: "Sphere"})
+                            .attr("class", "sphere-outline")
+                            .attr("d", path)
+                            .attr("fill", "none")
+                            .attr("stroke", "rgba(255, 255, 255, 0.15)")
+                            .attr("stroke-width", 0.5);
+                        
+                    })
+                    .catch(err => {
+                        console.error("載入地圖數據失敗:", err);
+                        earthLoading.innerHTML = `
+                            <div style="color:#e74c3c;">載入地圖數據失敗</div>
+                            <div style="font-size:0.9rem; margin-top:0.5rem;">請檢查網絡連接後刷新頁面</div>
+                        `;
+                        
+                        // 即使載入失敗也標記為已加載並顯示內容
+                        isEarthLoaded = true;
+                        if (header.classList.contains('visible')) {
+                            showContentAndFooter();
+                        }
+                    });
+                
+                // 響應式調整
+                window.addEventListener('resize', function() {
+                    width = container.clientWidth;
+                    height = container.clientHeight;
+                    
+                    svg.attr('width', width).attr('height', height);
+                    
+                    projection
+                        .scale(Math.min(width, height) / 2.5)
+                        .translate([width / 2, height / 2]);
+                    
+                    // 更新所有路徑
+                    if (countryPaths) {
+                        countryPaths.attr("d", path);
+                        d3.select(".graticule").attr("d", path);
+                        d3.select(".sphere-outline").attr("d", path);
+                    }
+                });
+            }
+            
+            // 初始化頁面
+            document.documentElement.lang = 'pt-PT';
+            
+            // 頁面加載後開始初始化流程
+            window.addEventListener('load', function() {
+                // 立即開始顯示界面元素（從標題列開始）
+                showInterfaceElements();
+                
+                // 初始化地球（緩慢自轉背景）
+                setTimeout(initEarth, 500);
+            });
+            
+            // 如果地圖載入失敗的後備方案
+            setTimeout(function() {
+                if (earthLoading.style.display !== 'none') {
+                    earthLoading.innerHTML = "地圖載入失敗，顯示背景圖...<br><small>請檢查網絡連接</small>";
+                    
+                    // 標記地球已加載（失敗狀態）
+                    isEarthLoaded = true;
+                    if (header.classList.contains('visible')) {
+                        showContentAndFooter();
+                    }
+                }
+            }, 10000);
+        });
+    </script>
+</body>
+</html>
