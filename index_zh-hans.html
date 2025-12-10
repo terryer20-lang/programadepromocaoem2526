@@ -712,7 +712,7 @@
             display: none;
         }
 
-        /* 数据源标注 - 右下角，初始隐藏 */
+        /* 资料來源标注 - 右下角，初始隐藏 */
         .data-source {
             position: fixed; /* 改为fixed定位 */
             bottom: 20px;
@@ -731,7 +731,7 @@
             pointer-events: auto; /* 确保可以点击 */
         }
         
-        /* 数据源隐藏动画 - 从上向下消失 */
+        /* 资料來源隐藏动画 - 从上向下消失 */
         .data-source.hide-down {
             transform: translateY(100px); /* 向下消失 */
             opacity: 0;
@@ -990,10 +990,10 @@
                     <div class="country-details" id="country-risk">风险等级: -</div>
                 </div>
 
-                <!-- 数据源标注 - 初始隐藏，添加超链接 -->
+                <!-- 资料來源标注 - 初始隐藏，添加超链接 -->
                 <div class="data-source" id="data-source">
                     <a href="https://worldpopulationreview.com/country-rankings/safest-countries-in-the-world" target="_blank" rel="noopener noreferrer">
-                        数据源: Safest Countries in the World 2025
+                        资料來源: Safest Countries in the World 2025
                     </a>
                 </div>
 
@@ -1658,16 +1658,16 @@
                     isFooterVisible = true;
                 }
                 
-                // 控制统计面板和数据源面板的隐藏/显示
+                // 控制统计面板和资料來源面板的隐藏/显示
                 const featuresSectionTop = featuresSection.offsetTop;
                 const scrollTrigger = window.innerHeight * 0.5;
                 
                 if (scrollTop > featuresSectionTop - scrollTrigger) {
-                    // 滚动到第二区块，隐藏统计面板和数据源
+                    // 滚动到第二区块，隐藏统计面板和资料來源
                     statsPanel.classList.add('hide-up');
                     dataSource.classList.add('hide-down');
                 } else {
-                    // 滚回第一区块，显示统计面板和数据源
+                    // 滚回第一区块，显示统计面板和资料來源
                     statsPanel.classList.remove('hide-up');
                     dataSource.classList.remove('hide-down');
                 }
@@ -1763,7 +1763,7 @@
                     statsPanel.classList.add('visible');
                 }, 300);
                 
-                // 显示数据源（从下向上飘动）
+                // 显示资料來源（从下向上飘动）
                 setTimeout(() => {
                     dataSource.classList.add('visible');
                 }, 500);
