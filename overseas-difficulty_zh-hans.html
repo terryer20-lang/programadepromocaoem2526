@@ -1,0 +1,1533 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我在海外遇到困难专区 - 领事保护与居民权利</title>
+    <!-- 引入 D3.js 和 TopoJSON -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://unpkg.com/topojson-client@3"></script>
+    <style>
+        /* 基础重置与移动优先样式 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            font-size: 16px;
+            scroll-behavior: smooth;
+            height: 100%;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft JhengHei", sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(180deg, #0a0f2e 0%, #1A2B6D 100%);
+            min-height: 100vh;
+        }
+
+        /* 触控目标至少44px */
+        button, 
+        a, 
+        .menu-toggle,
+        .btn,
+        .lang-btn,
+        .menu-item,
+        .stat-item {
+            min-height: 44px;
+            min-width: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* 导航栏 - 更新背景为hero模板的渐变，初始隐藏并在上方 */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 1000;
+            padding: 0.5rem 1rem;
+            background: linear-gradient(135deg, rgba(26, 43, 109, 0.95) 0%, rgba(213, 43, 30, 0.95) 100%);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+            transition: transform 0.8s ease-out, opacity 0.8s ease-out;
+            transform: translateY(-100%); /* 初始位置：在上方不可见 */
+            opacity: 0;
+            height: 60px;
+        }
+
+        .header.visible {
+            transform: translateY(0); /* 最终位置：在顶部可见 */
+            opacity: 1;
+        }
+
+        .header.hidden {
+            transform: translateY(-100%);
+        }
+
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 100%;
+        }
+
+        .logo {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #FFD700;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .menu-toggle {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #FFD700;
+            padding: 0.5rem;
+            z-index: 1001;
+        }
+
+        /* 侧边菜单 - 更新背景为hero模板的渐变 */
+        .side-menu {
+            position: fixed;
+            top: 0;
+            right: -100%;
+            width: 85%;
+            max-width: 400px;
+            height: 100vh;
+            background: linear-gradient(135deg, #1A2B6D 0%, #D52B1E 100%);
+            box-shadow: -5px 0 25px rgba(0, 0, 0, 0.1);
+            transition: right 0.4s ease-in-out;
+            z-index: 1002;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .side-menu.active {
+            right: 0;
+        }
+
+        .menu-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s;
+            z-index: 1001;
+        }
+
+        .menu-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .menu-header {
+            padding: 1.2rem;
+            background: rgba(0, 0, 0, 0.2);
+            color: white;
+        }
+
+        .menu-header h2 {
+            font-size: 1.2rem;
+            margin-bottom: 0.3rem;
+            color: #FFD700;
+        }
+
+        .menu-header p {
+            opacity: 0.9;
+            font-size: 0.8rem;
+        }
+
+        /* 语言选择器 - 移动到菜单顶部 */
+        .lang-selector {
+            padding: 1rem;
+            background-color: rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .lang-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: white;
+        }
+
+        .lang-btn.active {
+            background-color: #f6d52a;
+            color: #000000;
+            border-color: #f6d52a;
+        }
+
+        .menu-content {
+            flex: 1;
+            padding: 1.2rem;
+        }
+
+        .menu-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .menu-section h3 {
+            font-size: 1rem;
+            color: #FFD700;
+            margin-bottom: 0.8rem;
+            padding-bottom: 0.3rem;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            padding: 0.6rem 0;
+            color: white;
+            text-decoration: none;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .menu-item:last-child {
+            border-bottom: none;
+        }
+
+        .menu-item:hover {
+            color: #FFD700;
+            padding-left: 0.5rem;
+        }
+
+        .menu-item-icon {
+            width: 25px;
+            text-align: center;
+            margin-right: 0.6rem;
+            font-size: 1rem;
+        }
+
+        /* 主容器 */
+        .main-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 地球容器 - 全画面作为背景 */
+        .earth-section {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            background: linear-gradient(to bottom, #0a0f2e 0%, #1A2B6D 100%);
+            z-index: -1;
+        }
+
+        #globe-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #globe {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* 内容区域 - 在背景上方 */
+        .content-section {
+            position: relative;
+            z-index: 10;
+            margin-top: 80px;
+            padding: 2rem 1.5rem;
+            color: white;
+            min-height: calc(100vh - 60px);
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.8s ease-out 0.3s, transform 0.8s ease-out 0.3s;
+        }
+
+        .content-section.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* 页面标题 */
+        .page-title {
+            text-align: center;
+            font-size: 2.2rem;
+            margin-bottom: 2rem;
+            color: #FFD700;
+            position: relative;
+            padding-bottom: 1rem;
+        }
+
+        .page-title:after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 3px;
+            background-color: #D52B1E;
+        }
+
+        /* 内容卡片 */
+        .content-card {
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 12px;
+            padding: 2rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 2rem;
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .content-card h2 {
+            font-size: 1.8rem;
+            color: #FFD700;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .content-card h3 {
+            font-size: 1.4rem;
+            color: #FFD700;
+            margin: 1.5rem 0 1rem;
+        }
+
+        .content-card p {
+            font-size: 1.1rem;
+            line-height: 1.7;
+            margin-bottom: 1rem;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .content-card ul, .content-card ol {
+            padding-left: 2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .content-card li {
+            font-size: 1.1rem;
+            line-height: 1.7;
+            margin-bottom: 0.5rem;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        /* 功能区块网格 */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .feature-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .feature-card h4 {
+            font-size: 1.3rem;
+            color: #FFD700;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .feature-card p {
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.8);
+            line-height: 1.6;
+        }
+
+        /* 困难类别标签 */
+        .difficulty-category {
+            display: inline-block;
+            background: linear-gradient(135deg, #1A2B6D 0%, #D52B1E 100%);
+            color: white;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            margin: 0.3rem 0.5rem 0.3rem 0;
+        }
+
+        /* 提示框 */
+        .info-box {
+            background: rgba(255, 215, 0, 0.1);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .info-box h4 {
+            color: #FFD700;
+            font-size: 1.3rem;
+            margin-bottom: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .info-box p {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 1rem;
+        }
+
+        /* 按钮样式 */
+        .action-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #1A2B6D 0%, #D52B1E 100%);
+            color: white;
+            padding: 0.8rem 1.5rem;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1rem;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 1rem;
+        }
+
+        .action-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        /* 紧急求助按钮 */
+        .emergency-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #D52B1E 0%, #B22222 100%);
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 1.2rem;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin: 1rem 0;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(213, 43, 30, 0.4);
+        }
+
+        .emergency-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(213, 43, 30, 0.6);
+        }
+
+        /* 步骤指示器 */
+        .step-indicator {
+            display: flex;
+            justify-content: space-between;
+            margin: 2rem 0;
+            position: relative;
+        }
+
+        .step-indicator:before {
+            content: '';
+            position: absolute;
+            top: 20px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.2);
+            z-index: 1;
+        }
+
+        .step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            z-index: 2;
+            flex: 1;
+        }
+
+        .step-number {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #1A2B6D;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            border: 2px solid #FFD700;
+        }
+
+        .step.active .step-number {
+            background: #FFD700;
+            color: #1A2B6D;
+        }
+
+        .step-label {
+            font-size: 0.9rem;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        /* 页脚 - 在第三区块下面 */
+        #footer {
+            background-color: rgba(0, 0, 0, 0.8);
+            color: #ddd;
+            position: relative;
+            z-index: 20;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            transform: translateY(50px);
+            opacity: 0;
+            transition: transform 0.8s ease-out, opacity 0.8s ease-out;
+            transition-delay: 0.6s;
+        }
+
+        #footer.visible {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .footer-content {
+            padding: 3rem 1.5rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .footer-section {
+            margin-bottom: 2.5rem;
+        }
+
+        .footer-section h3 {
+            color: #FFD700;
+            font-size: 1.3rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .footer-links {
+            list-style: none;
+        }
+
+        .footer-links li {
+            margin-bottom: 0.8rem;
+        }
+
+        .footer-links a {
+            color: #ddd;
+            text-decoration: none;
+            font-size: 0.8rem;
+            transition: color 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            white-space: nowrap;
+        }
+
+        .footer-links a:hover {
+            color: #FFD700;
+        }
+
+        .footer-links a:before {
+            content: "›";
+            color: #FFD700;
+        }
+
+        .contact-text {
+            font-size: 0.95rem;
+            line-height: 1.7;
+            margin-bottom: 1.5rem;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .contact-email {
+            display: inline-block;
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 0.8rem 1.2rem;
+            border-radius: 4px;
+            color: #FFD700;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: background-color 0.2s;
+        }
+
+        .contact-email:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .copyright {
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 1.5rem;
+            text-align: center;
+            font-size: 0.9rem;
+            color: #aaa;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* 地球加载提示 */
+        .earth-loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            z-index: 2;
+            text-align: center;
+            font-size: 1.2rem;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 2rem;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            opacity: 0;
+            transition: opacity 0.5s ease-out;
+        }
+
+        .earth-loading.visible {
+            opacity: 1;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #FFD700;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* 辅助类 */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            border: 0;
+        }
+
+        .emergency-badge {
+            display: inline-block;
+            background-color: #D52B1E;
+            color: white;
+            font-size: 0.8rem;
+            padding: 0.2rem 0.6rem;
+            border-radius: 4px;
+            margin-left: 0.5rem;
+            font-weight: bold;
+        }
+
+        /* 提示框 */
+        .tooltip {
+            position: absolute;
+            padding: 0.75rem 1rem;
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            pointer-events: none;
+            z-index: 100;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            max-width: 250px;
+            display: none;
+        }
+
+        /* 紧急联系框 */
+        .emergency-contact {
+            background: rgba(213, 43, 30, 0.2);
+            border: 1px solid rgba(213, 43, 30, 0.5);
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .emergency-contact h4 {
+            color: #FFD700;
+            font-size: 1.3rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .emergency-contact p {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .emergency-number {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #FFD700;
+            text-decoration: none;
+            display: inline-block;
+            margin: 0.5rem 0;
+        }
+
+        /* 困难情境卡片 */
+        .situation-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border-left: 4px solid #FFD700;
+        }
+
+        .situation-card h5 {
+            font-size: 1.2rem;
+            color: #FFD700;
+            margin-bottom: 0.8rem;
+        }
+
+        .situation-card p {
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 0.5rem;
+        }
+
+        /* 桌面适配 (移动优先) */
+        @media (min-width: 768px) {
+            html {
+                font-size: 18px;
+            }
+
+            .logo {
+                font-size: 1.3rem;
+            }
+
+            .content-section {
+                padding: 3rem 2rem;
+                margin-top: 100px;
+            }
+
+            .page-title {
+                font-size: 2.5rem;
+            }
+
+            .content-card {
+                padding: 3rem;
+            }
+
+            .footer-content {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 3rem;
+            }
+            
+            .footer-links a {
+                font-size: 0.85rem;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .content-section {
+                padding: 4rem 3rem;
+            }
+
+            .page-title {
+                font-size: 2.8rem;
+            }
+            
+            .footer-content {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 4rem;
+            }
+        }
+
+        @media (max-width: 767px) {
+            .features-grid {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+            
+            .step-indicator {
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 1.5rem;
+            }
+            
+            .step {
+                flex: 0 0 calc(50% - 1rem);
+                margin-bottom: 1rem;
+            }
+            
+            .footer-links a {
+                font-size: 0.75rem;
+                white-space: normal;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 - 初始隐藏 -->
+    <header class="header" id="header">
+        <nav class="navbar" aria-label="主导航">
+            <!-- 标题点击后返回主页 -->
+            <a href="index.html" class="logo">
+                <span>领事保护与居民权利</span>
+            </a>
+            <button class="menu-toggle" aria-expanded="false" aria-controls="side-menu">
+                ☰
+                <span class="sr-only">导航菜单</span>
+            </button>
+        </nav>
+    </header>
+
+    <!-- 侧边菜单屏蔽 -->
+    <div class="menu-overlay" id="menu-overlay"></div>
+
+    <!-- 侧边菜单 -->
+    <aside class="side-menu" id="side-menu">
+        <div class="menu-header">
+            <h2>领事保护与居民权利</h2>
+            <p>您的海外安全守护者</p>
+        </div>
+        
+        <!-- 语言选择器 -->
+        <div class="lang-selector">
+            <button class="lang-btn" data-lang="zh-hant" onclick="switchLanguage('zh-hant')">繁</button>
+            <button class="lang-btn" data-lang="zh-hans" onclick="switchLanguage('zh-hans')">简</button>
+            <button class="lang-btn" data-lang="pt" onclick="switchLanguage('pt')">PT</button>
+        </div>
+        
+        <div class="menu-content">
+            <div class="menu-section">
+                <h3>特色活动</h3>
+                <a href="weekly-challenge_zh-hant.html" class="menu-item">
+                    <span class="menu-item-icon">⭐</span>
+                    <span>「领保之星」每周主题挑战赛</span>
+                </a>
+                <a href="safety-quiz_zh-hant.html" class="menu-item">
+                      <span class="menu-item-icon">📊</span>
+                     <span>「海外旅行安全指数」小测试</span>
+                </a>
+            </div>
+            
+            <div class="menu-section">
+                <h3>紧急服务</h3>
+                <a href="emergency_zh-hant.html" class="menu-item">
+                    <span class="menu-item-icon">🚨</span>
+                    <span>紧急求助专区 <span class="emergency-badge">24小时</span></span>
+                </a>
+                <a href="upcoming-trip_zh-hant.html" class="menu-item">
+                    <span class="menu-item-icon">✈️</span>
+                    <span>「我即将出国」专区</span>
+                </a>
+                <a href="overseas-difficulty_zh-hant.html" class="menu-item">
+                    <span class="menu-item-icon">🆘</span>
+                    <span>「我在海外遇到困难」专区</span>
+                </a>
+            </div>
+            
+            <div class="menu-section">
+                <h3>信息资源</h3>
+                <a href="risk-map_zh-hant.html" class="menu-item">
+                    <span class="menu-item-icon">🗺️</span>
+                    <span>全球风险地图</span>
+                </a>
+                <a href="podcast_zh-hant.html" class="menu-item">
+                    <span class="menu-item-icon">🎧</span>
+                    <span>播客集</span>
+                </a>
+                <a href="short-videos_zh-hant.html" class="menu-item">
+                    <span class="menu-item-icon">🎬</span>
+                    <span>一分钟短片集</span>
+                </a>
+                <a href="resources_zh-hant.html" class="menu-item">
+                    <span class="menu-item-icon">📚</span>
+                    <span>资源专区</span>
+                </a>
+            </div>
+            
+            <div class="menu-section">
+                <h3>专区服务</h3>
+                <a href="emergency_zh-hant.html" class="menu-item">
+                    <span class="menu-item-icon">🚨</span>
+                    <span>紧急求助专区</span>
+                </a>
+                <a href="consular-protection_zh-hant.html" class="menu-item">
+                    <span class="menu-item-icon">🛡️</span>
+                    <span>领事保护与协助专区</span>
+                </a>
+                <a href="rights_zh-hant.html" class="menu-item">
+                    <span class="menu-item-icon">📋</span>
+                    <span>居民身份权利专区</span>
+                </a>
+                <a href="schedule_zh-hant.html" class="menu-item">
+                    <span class="menu-item-icon">📅</span>
+                    <span>活动日程</span>
+                </a>
+            </div>
+        </div>
+    </aside>
+
+    <!-- 主内容区域 -->
+    <main class="main-container">
+        <!-- 地球区域 - 全画面背景 -->
+        <section class="earth-section">
+            <!-- 地球容器 -->
+            <div id="globe-container">
+                <svg id="globe"></svg>
+
+                <!-- 地球加载提示 -->
+                <div class="earth-loading" id="earth-loading">
+                    <div class="loading-spinner"></div>
+                    正在载入全球地图...
+                </div>
+            </div>
+        </section>
+
+        <!-- 内容区域 -->
+        <section class="content-section" id="content-section">
+            <h1 class="page-title">我在海外遇到困难</h1>
+            
+            <!-- 主要内容卡片 -->
+            <div class="content-card">
+                <h2>海外困难协助指南</h2>
+                <p>当您在海外遇到困难时，不必惊慌。本专区为您提供各种常见海外困难的解决方案、紧急联系方式和实用资源。请根据您遇到的具体情况选择对应的帮助指引。</p>
+                
+                <!-- 紧急求助按钮 -->
+                <div style="text-align: center; margin: 2rem 0;">
+                    <a href="emergency_zh-hant.html" class="emergency-button">🚨 紧急求助 (24小时)</a>
+                </div>
+                
+                <!-- 常见困难类别 -->
+                <h3>常见困难类别</h3>
+                <div style="margin: 1.5rem 0;">
+                    <span class="difficulty-category">🛂 证件遗失</span>
+                    <span class="difficulty-category">💰 财务困难</span>
+                    <span class="difficulty-category">🏥 医疗急救</span>
+                    <span class="difficulty-category">⚖️ 法律纠纷</span>
+                    <span class="difficulty-category">🚔 安全威胁</span>
+                    <span class="difficulty-category">🏠 住宿问题</span>
+                    <span class="difficulty-category">📱 通讯中断</span>
+                    <span class="difficulty-category">🧳 行李遗失</span>
+                </div>
+                
+                <!-- 紧急联系信息 -->
+                <div class="emergency-contact">
+                    <h4>📞 紧急联系方式</h4>
+                    <p><strong>外交部全球领事保护与服务应急热线（24小时）：</strong></p>
+                    <a href="tel:+86-10-12308" class="emergency-number">+86-10-12308</a>
+                    <p style="margin-top: 1rem;"><strong>澳门特别行政区政府旅游危机处理办公室：</strong></p>
+                    <p>电话：(853) 2833 3000</p>
+                    <p style="margin-top: 1rem;"><strong>当地紧急电话（警察/救护车/消防）：</strong></p>
+                    <p>请先拨打当地紧急电话，再联系使领馆</p>
+                </div>
+                
+                <!-- 步骤指示器 -->
+                <h3>遇到困难时的基本步骤</h3>
+                <div class="step-indicator">
+                    <div class="step active">
+                        <div class="step-number">1</div>
+                        <div class="step-label">保持冷静</div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        <div class="step-label">确保安全</div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        <div class="step-label">联系当地<br>紧急服务</div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">4</div>
+                        <div class="step-label">联系中国<br>使领馆</div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">5</div>
+                        <div class="step-label">通知家人</div>
+                    </div>
+                </div>
+                
+                <!-- 常见困难情境与解决方案 -->
+                <h3>常见困难情境与解决方案</h3>
+                
+                <div class="situation-card">
+                    <h5>🛂 护照或证件遗失</h5>
+                    <p><strong>应对步骤：</strong></p>
+                    <ol>
+                        <li>立即向当地警察局报案，获取报案证明</li>
+                        <li>联系最近的中国使领馆申请补发旅行证</li>
+                        <li>准备身份证明文件复印件及照片</li>
+                        <li>保留使领馆联系方式及案件编号</li>
+                    </ol>
+                    <p><strong>预防建议：</strong>出行前复印重要证件，分开存放原件与复印件</p>
+                </div>
+                
+                <div class="situation-card">
+                    <h5>💰 财务困难或信用卡被盗</h5>
+                    <p><strong>应对步骤：</strong></p>
+                    <ol>
+                        <li>立即联系银行冻结信用卡/银行卡</li>
+                        <li>向当地警方报案并获取报案证明</li>
+                        <li>联系家人或朋友寻求紧急资金援助</li>
+                        <li>联系使领馆了解当地华人社团援助资源</li>
+                    </ol>
+                    <p><strong>预防建议：</strong>分散存放资金，携带少量现金，使用防盗钱包</p>
+                </div>
+                
+                <div class="situation-card">
+                    <h5>🏥 突发疾病或意外受伤</h5>
+                    <p><strong>应对步骤：</strong></p>
+                    <ol>
+                        <li>立即拨打当地急救电话请求医疗援助</li>
+                        <li>联系旅行保险公司了解理赔流程</li>
+                        <li>请医院提供详细诊断证明及费用单据</li>
+                        <li>联系使领馆协助沟通及家人通知</li>
+                    </ol>
+                    <p><strong>预防建议：</strong>出发前购买包含医疗保障的旅行保险，了解当地医疗系统</p>
+                </div>
+                
+                <div class="situation-card">
+                    <h5>⚖️ 涉及法律纠纷或被捕</h5>
+                    <p><strong>应对步骤：</strong></p>
+                    <ol>
+                        <li>保持冷静，配合当地执法部门</li>
+                        <li>要求联系中国使领馆领事官员</li>
+                        <li>要求提供翻译服务（如语言不通）</li>
+                        <li>不要轻易签署不理解的文件</li>
+                        <li>寻求专业法律协助</li>
+                    </ol>
+                    <p><strong>注意：</strong>使领馆不能干涉当地司法程序，但可提供法律咨询和协助</p>
+                </div>
+                
+                <!-- 使领馆协助范围说明 -->
+                <div class="info-box">
+                    <h4>🛡️ 中国使领馆可以为您提供的协助</h4>
+                    <p>当您在海外遇到困难时，中国驻外使领馆可以根据情况提供以下协助：</p>
+                    <ul>
+                        <li>提供当地律师、翻译和医生名单</li>
+                        <li>在发生自然灾害、政治动荡等重大事件时协助撤离</li>
+                        <li>在您被拘留、逮捕或服刑时进行领事探视</li>
+                        <li>在您遭遇意外时协助通知国内亲属</li>
+                        <li>协助您与国内亲属联系，解决生活或工作困难</li>
+                        <li>为遗失旅行证件或遇到经济困难的公民颁发旅行证件或提供小额贷款</li>
+                    </ul>
+                    <p><strong>注意：</strong>使领馆不能为您支付医疗、法律、酒店、机票等费用。</p>
+                </div>
+                
+                <!-- 预防措施 -->
+                <h3>海外安全预防措施</h3>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <h4>📄 文件安全</h4>
+                        <p>将护照、签证、身份证等重要文件复印或拍照，原件与复印件分开存放。在手机和云端保存电子副本。</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <h4>💰 财务安全</h4>
+                        <p>准备多种支付方式（现金、信用卡、旅行支票），分开存放。记录银行紧急联络电话和信用卡号码。</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <h4>📱 通讯准备</h4>
+                        <p>开通国际漫游或购买当地SIM卡。保存中国使领馆、当地紧急电话和保险公司联络方式。</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <h4>🏥 医疗准备</h4>
+                        <p>购买合适的旅行保险，携带个人常用药品及英文处方。了解目的地医疗资源和紧急医疗服务。</p>
+                    </div>
+                </div>
+                
+                <!-- 资源连结 -->
+                <h3>相关资源与连结</h3>
+                <p>以下资源可能对您有帮助：</p>
+                <ul>
+                    <li>中国领事服务网：cs.mfa.gov.cn - 查询使领馆信息、安全提醒等</li>
+                    <li>全球风险地图 - 查看各国安全风险等级（请使用网站内导航）</li>
+                    <li>资源专区 - 下载实用旅行安全数据（请使用网站内导航）</li>
+                    <li>外交部领事保护官方微信：领事直通车 (ls12308)</li>
+                </ul>
+                
+                <!-- 行动按钮 -->
+                <div style="display: flex; gap: 1rem; margin-top: 2rem; flex-wrap: wrap;">
+                    <a href="index.html" class="action-button">返回主页</a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 页脚 -->
+    <footer id="footer" class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h3>相关连结</h3>
+                <ul class="footer-links">
+                    <li><a href="https://www.fmprc.gov.cn/web/" target="_blank">中华人民共和国外交部</a></li>
+                    <li><a href="https://portaldascomunidades.mne.gov.pt/pt/" target="_blank">葡萄牙共和国外交部</a></li>
+                    <li><a href="https://cs.mfa.gov.cn/" target="_blank">中国领事服务网</a></li>
+                    <li><a href="https://mo.ocmfa.gov.cn/chn/" target="_blank">中华人民共和国外交部驻澳门特别行政区特派员公署</a></li>
+                    <li><a href="https://www.gov.mo/zh-hant/" target="_blank">澳门特别行政区政府入口网站</a></li>
+                    <li><a href="https://www.dsi.gov.mo/index_cn.jsp" target="_blank">澳门特别行政区政府身份证明局</a></li>
+                    <li><a href="https://www.elctp.k12.edu.mo/elctp/" target="_blank">澳门中葡职业技术学校</a></li>
+                </ul>
+            </div>
+            
+            <div class="footer-section">
+                <h3>联络我们</h3>
+                <p class="contact-text">
+                    本网站由一群中学生自主开发，旨在增进公众对领事保护、协助服务及居民身份权利的认识与关注。由于团队成员学业繁忙，网站信息将不定期更新与维护，如有不便，敬请理解。
+                    <br><br>
+                    我们诚挚欢迎您对网站用户界面提出宝贵意见，若发现信息有误也欢迎指正。
+                </p>
+                <a href="mailto:infodoprogramaem2526@gmail.com" class="contact-email">infodoprogramaem2526@gmail.com</a>
+            </div>
+        </div>
+        
+        <div class="copyright">
+            © 2025-2026 中葡职业技术学校高三翻译宣传领事保护与协助和居民权利小组（Escudos de Quíron） 版权所有
+        </div>
+    </footer>
+
+    <!-- 提示框 -->
+    <div class="tooltip" id="tooltip"></div>
+
+    <script>
+        // ==================== 语言映射表 ====================
+        const translationMap = {
+            // 繁体页面 (zh-hant) 为基准
+            "index.html": {
+                "zh-hans": "index_zh-hans.html",
+                "pt": "index_pt.html"
+            },
+            "emergency_zh-hant.html": {
+                "zh-hans": "emergency_zh-hans.html",
+                "pt": "emergency_pt.html"
+            },
+            "upcoming-trip_zh-hant.html": {
+                "zh-hans": "upcoming-trip_zh-hans.html",
+                "pt": "upcoming-trip_pt.html"
+            },
+            "overseas-difficulty_zh-hant.html": {
+                "zh-hans": "overseas-difficulty_zh-hans.html",
+                "pt": "overseas-difficulty_pt.html"
+            },
+            "risk-map_zh-hant.html": {
+                "zh-hans": "risk-map_zh-hans.html",
+                "pt": "risk-map_pt.html"
+            },
+            "podcast_zh-hant.html": {
+                "zh-hans": "podcast_zh-hans.html",
+                "pt": "podcast_pt.html"
+            },
+            "short-videos_zh-hant.html": {
+                "zh-hans": "short-videos_zh-hans.html",
+                "pt": "short-videos_pt.html"
+            },
+            "resources_zh-hant.html": {
+                "zh-hans": "resources_zh-hans.html",
+                "pt": "resources_pt.html"
+            },
+            "consular-protection_zh-hant.html": {
+                "zh-hans": "consular-protection_zh-hans.html",
+                "pt": "consular-protection_pt.html"
+            },
+            "rights_zh-hant.html": {
+                "zh-hans": "rights_zh-hans.html",
+                "pt": "rights_pt.html"
+            },
+            "schedule_zh-hant.html": {
+                "zh-hans": "schedule_zh-hans.html",
+                "pt": "schedule_pt.html"
+            },
+            "weekly-challenge_zh-hant.html": {
+                "zh-hans": "weekly-challenge_zh-hans.html",
+                "pt": "weekly-challenge_pt.html"
+            },
+            "safety-quiz_zh-hant.html": {
+                "zh-hans": "safety-quiz_zh-hans.html",
+                "pt": "safety-quiz_pt.html"
+            }
+        };
+
+        // ==================== 语言切换函数 ====================
+        /**
+         * 根据当前页面和目标语言代码进行导航
+         * @param {string} targetLang - 目标语言代码 ('zh-hant', 'zh-hans', 'pt')
+         */
+        function switchLanguage(targetLang) {
+            // 获取当前激活的语言按钮
+            const activeButton = document.querySelector('.lang-btn.active');
+            
+            // 如果点击的按钮已经是激活状态，则直接返回，不执行任何操作
+            if (activeButton && activeButton.getAttribute('data-lang') === targetLang) {
+                console.log(`当前已是${targetLang}语言，无需切换`);
+                return;
+            }
+            
+            // 1. 获取当前页面的文件名
+            const currentPath = window.location.pathname;
+            const currentFileName = currentPath.substring(currentPath.lastIndexOf('/') + 1);
+            
+            console.log(`当前文件: ${currentFileName}, 目标语言: ${targetLang}`);
+            
+            // 2. 在映射表中查找目标链接
+            const currentLangLinks = translationMap[currentFileName];
+            
+            if (currentLangLinks && currentLangLinks[targetLang]) {
+                // 3. 构造完整的目标 URL
+                const targetFileName = currentLangLinks[targetLang];
+                
+                // 获取当前目录路径
+                let basePath = currentPath.substring(0, currentPath.lastIndexOf('/') + 1);
+                if (basePath === '/') basePath = ''; // 如果是在根目录
+                
+                const newUrl = basePath + targetFileName;
+                
+                console.log(`导航到: ${newUrl}`);
+                
+                // 4. 导航到目标页面
+                window.location.href = newUrl;
+            } else {
+                // 如果找不到对应链接
+                console.error(`找不到 ${currentFileName} 对应的 ${targetLang} 语言链接。`);
+                alert('抱歉，该页面的此语言版本暂时不可用。');
+            }
+        }
+
+        // ==================== 页面功能脚本 ====================
+        document.addEventListener('DOMContentLoaded', function() {
+            const header = document.getElementById('header');
+            const menuToggle = document.querySelector('.menu-toggle');
+            const sideMenu = document.getElementById('side-menu');
+            const menuOverlay = document.getElementById('menu-overlay');
+            const earthLoading = document.getElementById('earth-loading');
+            const contentSection = document.getElementById('content-section');
+            const langButtons = document.querySelectorAll('.lang-btn');
+            const footer = document.getElementById('footer');
+            
+            let lastScrollTop = 0;
+            let isMenuOpen = false;
+            
+            // 滚动监听变量
+            let isFooterVisible = false;
+            
+            // D3.js 变量
+            let width, height, svg, projection, path, globeGroup, countryPaths;
+            
+            // 自动旋转控制变量
+            let autoRotate = true;
+            let rotationSpeed = 0.1;
+            let animationId = null;
+            
+            // 页面状态
+            let isEarthLoaded = false;
+            
+            // 汉堡菜单切换功能
+            function toggleMenu() {
+                isMenuOpen = !isMenuOpen;
+                sideMenu.classList.toggle('active', isMenuOpen);
+                menuOverlay.classList.toggle('active', isMenuOpen);
+                menuToggle.setAttribute('aria-expanded', isMenuOpen);
+                document.body.style.overflow = isMenuOpen ? 'hidden' : '';
+            }
+
+            menuToggle.addEventListener('click', toggleMenu);
+            menuOverlay.addEventListener('click', toggleMenu);
+
+            // 关闭菜单当点击菜单内的链接
+            sideMenu.addEventListener('click', function(e) {
+                if (e.target.tagName === 'A') {
+                    toggleMenu();
+                }
+            });
+
+            // ==================== 语言按钮高亮逻辑 ====================
+            /**
+             * 根据当前页面自动高亮对应的语言按钮
+             */
+            function highlightCurrentLanguage() {
+                // 获取当前页面的文件名
+                const currentPath = window.location.pathname;
+                const currentFileName = currentPath.substring(currentPath.lastIndexOf('/') + 1);
+                
+                console.log(`当前文件名: ${currentFileName}`);
+                
+                // 移除所有按钮的active类
+                langButtons.forEach(btn => btn.classList.remove('active'));
+                
+                // 根据文件名判断当前语言
+                let currentLang = '';
+                
+                if (currentFileName.includes('_zh-hant.html') || currentFileName === 'index.html') {
+                    currentLang = 'zh-hant';
+                } else if (currentFileName.includes('_zh-hans.html')) {
+                    currentLang = 'zh-hans';
+                } else if (currentFileName.includes('_pt.html')) {
+                    currentLang = 'pt';
+                } else {
+                    // 默认情况下，假设是繁体中文
+                    currentLang = 'zh-hant';
+                }
+                
+                // 找到对应语言按钮并添加active类
+                const activeButton = document.querySelector(`.lang-btn[data-lang="${currentLang}"]`);
+                if (activeButton) {
+                    activeButton.classList.add('active');
+                    console.log(`高亮语言按钮: ${currentLang}`);
+                } else {
+                    console.warn(`找不到对应语言按钮: ${currentLang}`);
+                }
+            }
+            
+            // 页面加载时立即调用高亮函数
+            highlightCurrentLanguage();
+
+            // 滚动时隐藏/显示导航栏和显示动画
+            window.addEventListener('scroll', function() {
+                const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+                
+                // 隐藏/显示导航栏
+                if (!isMenuOpen) {
+                    if (scrollTop > lastScrollTop && scrollTop > 100) {
+                        header.classList.add('hidden');
+                    } else {
+                        header.classList.remove('hidden');
+                    }
+                }
+                
+                // 检查页脚是否进入视图
+                if (!isFooterVisible && scrollTop > window.innerHeight * 0.7) {
+                    footer.classList.add('visible');
+                    isFooterVisible = true;
+                }
+                
+                lastScrollTop = scrollTop;
+            });
+            
+            // 自动旋转动画
+            function autoRotateAnimation() {
+                // 始终自动旋转
+                const rotate = projection.rotate();
+                // 从右向左旋转（增加经度值）
+                projection.rotate([rotate[0] + rotationSpeed, rotate[1], rotate[2]]);
+                
+                // 更新所有路径
+                if (countryPaths) {
+                    countryPaths.attr("d", path);
+                    d3.select(".graticule").attr("d", path);
+                    d3.select(".sphere-outline").attr("d", path);
+                }
+                
+                // 继续动画循环
+                animationId = requestAnimationFrame(autoRotateAnimation);
+            }
+            
+            // 显示界面元素 - 从标题列从上下进入开始
+            function showInterfaceElements() {
+                // 显示地球加载提示
+                earthLoading.classList.add('visible');
+                
+                // 延迟后显示标题列（从上下进入）
+                setTimeout(() => {
+                    header.classList.add('visible');
+                }, 300);
+                
+                // 地球加载完成后显示内容区域和页脚
+                if (isEarthLoaded) {
+                    showContentAndFooter();
+                }
+            }
+            
+            // 显示内容区域和页脚
+            function showContentAndFooter() {
+                // 显示内容区域（淡入和上移动画）
+                setTimeout(() => {
+                    contentSection.classList.add('visible');
+                }, 500);
+                
+                // 显示页脚（从下往上淡入）
+                setTimeout(() => {
+                    footer.classList.add('visible');
+                }, 800);
+            }
+            
+            // 初始化D3地球（简化版，仅用于背景，缓慢自转）
+            function initEarth() {
+                const container = document.getElementById('globe-container');
+                width = container.clientWidth;
+                height = container.clientHeight;
+                
+                svg = d3.select('#globe')
+                    .attr('width', width)
+                    .attr('height', height);
+                
+                // 设置3D正射投影
+                projection = d3.geoOrthographic()
+                    .scale(Math.min(width, height) / 2.5)
+                    .translate([width / 2, height / 2])
+                    .rotate([-30, -20, 0]) // 固定初始视角
+                    .precision(0.1);
+                
+                path = d3.geoPath(projection);
+                
+                // 创建群组
+                globeGroup = svg.append('g');
+                
+                // 绘制经纬线网格
+                const graticule = d3.geoGraticule();
+                globeGroup.append("path")
+                    .datum(graticule)
+                    .attr("class", "graticule")
+                    .attr("d", path)
+                    .attr("fill", "none")
+                    .attr("stroke", "rgba(255, 255, 255, 0.1)")
+                    .attr("stroke-width", 0.3)
+                    .attr("stroke-dasharray", "2,2");
+                
+                // 加载地图数据
+                d3.json('https://unpkg.com/world-atlas@2/countries-110m.json')
+                    .then(worldData => {
+                        // 隐藏加载提示
+                        setTimeout(() => {
+                            earthLoading.style.opacity = '0';
+                            setTimeout(() => {
+                                earthLoading.style.display = 'none';
+                                earthLoading.classList.remove('visible');
+                                
+                                // 标记地球已加载
+                                isEarthLoaded = true;
+                                
+                                // 开始缓慢的自转动画
+                                autoRotateAnimation();
+                                
+                                // 如果标题列已显示，则显示内容区域和页脚
+                                if (header.classList.contains('visible')) {
+                                    showContentAndFooter();
+                                }
+                                
+                            }, 500);
+                        }, 800);
+                        
+                        const countries = topojson.feature(worldData, worldData.objects.countries).features;
+                        
+                        // 绘制国家 - 简化版，仅用于背景
+                        countryPaths = globeGroup.selectAll(".country")
+                            .data(countries)
+                            .enter().append("path")
+                            .attr("class", "country")
+                            .attr("d", path)
+                            .attr("fill", "rgba(255, 255, 255, 0.05)")
+                            .attr("stroke", "rgba(255, 255, 255, 0.1)")
+                            .attr("stroke-width", 0.2)
+                            .style("cursor", "default");
+                        
+                        // 绘制地球外轮廓
+                        const sphereOutline = globeGroup.append("path")
+                            .datum({type: "Sphere"})
+                            .attr("class", "sphere-outline")
+                            .attr("d", path)
+                            .attr("fill", "none")
+                            .attr("stroke", "rgba(255, 255, 255, 0.15)")
+                            .attr("stroke-width", 0.5);
+                        
+                    })
+                    .catch(err => {
+                        console.error("加载地图数据失败:", err);
+                        earthLoading.innerHTML = `
+                            <div style="color:#e74c3c;">加载地图数据失败</div>
+                            <div style="font-size:0.9rem; margin-top:0.5rem;">请检查网络连接后刷新页面</div>
+                        `;
+                        
+                        // 即使加载失败也标记为已加载并显示内容
+                        isEarthLoaded = true;
+                        if (header.classList.contains('visible')) {
+                            showContentAndFooter();
+                        }
+                    });
+                
+                // 响应式调整
+                window.addEventListener('resize', function() {
+                    width = container.clientWidth;
+                    height = container.clientHeight;
+                    
+                    svg.attr('width', width).attr('height', height);
+                    
+                    projection
+                        .scale(Math.min(width, height) / 2.5)
+                        .translate([width / 2, height / 2]);
+                    
+                    // 更新所有路径
+                    if (countryPaths) {
+                        countryPaths.attr("d", path);
+                        d3.select(".graticule").attr("d", path);
+                        d3.select(".sphere-outline").attr("d", path);
+                    }
+                });
+            }
+            
+            // 初始化页面
+            document.documentElement.lang = 'zh-TW';
+            
+            // 页面加载后开始初始化流程
+            window.addEventListener('load', function() {
+                // 立即开始显示界面元素（从标题列开始）
+                showInterfaceElements();
+                
+                // 初始化地球（缓慢自转背景）
+                setTimeout(initEarth, 500);
+            });
+            
+            // 如果地图加载失败的备选方案
+            setTimeout(function() {
+                if (earthLoading.style.display !== 'none') {
+                    earthLoading.innerHTML = "地图加载失败，显示背景图...<br><small>请检查网络连接</small>";
+                    
+                    // 标记地球已加载（失败状态）
+                    isEarthLoaded = true;
+                    if (header.classList.contains('visible')) {
+                        showContentAndFooter();
+                    }
+                }
+            }, 10000);
+        });
+    </script>
+</body>
+</html>
