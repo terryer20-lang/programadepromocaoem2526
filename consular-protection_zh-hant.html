@@ -124,7 +124,6 @@
             display: flex;
             flex-direction: column;
             overflow-y: auto;
-            scroll-behavior: smooth;
         }
 
         .side-menu.active {
@@ -196,7 +195,6 @@
         .menu-content {
             flex: 1;
             padding: 1.2rem;
-            padding-bottom: 10rem;
         }
 
         .menu-section {
@@ -334,6 +332,12 @@
             margin: 1.5rem 0 1rem;
         }
 
+        .content-card h4 {
+            font-size: 1.2rem;
+            color: #FFD700;
+            margin: 1rem 0 0.5rem;
+        }
+
         .content-card p {
             font-size: 1.1rem;
             line-height: 1.7;
@@ -353,41 +357,342 @@
             color: rgba(255, 255, 255, 0.9);
         }
 
-        /* 功能區塊網格 */
-        .features-grid {
+        /* 新樣式：職責邊界卡片網格 */
+        .duties-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
             gap: 1.5rem;
-            margin-top: 2rem;
+            margin: 2rem 0;
         }
 
-        .feature-card {
-            background: rgba(255, 255, 255, 0.1);
+        .duty-card {
+            background: rgba(26, 43, 109, 0.6);
             border-radius: 10px;
             padding: 1.5rem;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            transition: all 0.3s;
+            border-left: 4px solid #FFD700;
+            transition: transform 0.3s;
         }
 
-        .feature-card:hover {
+        .duty-card:hover {
             transform: translateY(-5px);
-            background: rgba(255, 255, 255, 0.15);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
         }
 
-        .feature-card h4 {
+        .duty-icon {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .duty-title {
             font-size: 1.3rem;
             color: #FFD700;
-            margin-bottom: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
+            margin-bottom: 0.8rem;
         }
 
-        .feature-card p {
+        .duty-desc {
             font-size: 1rem;
             color: rgba(255, 255, 255, 0.8);
             line-height: 1.6;
+        }
+
+        .duty-stat {
+            display: inline-block;
+            background: rgba(213, 43, 30, 0.8);
+            color: white;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            margin-top: 1rem;
+            font-weight: bold;
+        }
+
+        /* 新樣式：權限清單對比表格 */
+        .permissions-table {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+
+        @media (min-width: 768px) {
+            .permissions-table {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .permission-column {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            padding: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .permission-column.can-do {
+            border-top: 4px solid #4CAF50;
+        }
+
+        .permission-column.cannot-do {
+            border-top: 4px solid #D52B1E;
+        }
+
+        .permission-column h4 {
+            color: #FFD700;
+            margin-bottom: 1.2rem;
+            text-align: center;
+            font-size: 1.3rem;
+        }
+
+        .permission-item {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .permission-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .permission-icon {
+            font-size: 1.2rem;
+            margin-right: 0.8rem;
+            min-width: 24px;
+            text-align: center;
+        }
+
+        .permission-text {
+            flex: 1;
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 1rem;
+            line-height: 1.5;
+        }
+
+        /* 新樣式：出行前置步驟條 */
+        .steps-container {
+            margin: 2.5rem 0;
+            position: relative;
+        }
+
+        .steps-line {
+            position: absolute;
+            left: 30px;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: linear-gradient(to bottom, #1A2B6D, #D52B1E);
+            z-index: 1;
+        }
+
+        .step-item {
+            display: flex;
+            margin-bottom: 2rem;
+            position: relative;
+            z-index: 2;
+        }
+
+        .step-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #1A2B6D 0%, #D52B1E 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            margin-right: 1.5rem;
+            flex-shrink: 0;
+            border: 3px solid #0a0f2e;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .step-content {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 10px;
+            padding: 1.2rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .step-title {
+            font-size: 1.2rem;
+            color: #FFD700;
+            margin-bottom: 0.5rem;
+        }
+
+        .step-desc {
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.8);
+            line-height: 1.6;
+        }
+
+        /* 新樣式：風險應對折疊卡片 */
+        .risk-container {
+            margin: 2.5rem 0;
+        }
+
+        .risk-item {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .risk-header {
+            padding: 1.2rem;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            background: rgba(26, 43, 109, 0.5);
+            transition: background 0.3s;
+        }
+
+        .risk-header:hover {
+            background: rgba(26, 43, 109, 0.7);
+        }
+
+        .risk-icon {
+            font-size: 1.5rem;
+            margin-right: 1rem;
+            min-width: 30px;
+            text-align: center;
+        }
+
+        .risk-title {
+            font-size: 1.2rem;
+            color: #FFD700;
+            flex: 1;
+        }
+
+        .risk-toggle {
+            font-size: 1.5rem;
+            color: #FFD700;
+            transition: transform 0.3s;
+        }
+
+        .risk-item.active .risk-toggle {
+            transform: rotate(180deg);
+        }
+
+        .risk-content {
+            padding: 0;
+            max-height: 0;
+            overflow: hidden;
+            transition: all 0.4s ease;
+        }
+
+        .risk-item.active .risk-content {
+            padding: 1.2rem;
+            max-height: 500px;
+        }
+
+        .risk-content p {
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.9);
+            line-height: 1.6;
+            margin-bottom: 0.8rem;
+        }
+
+        /* 新樣式：功能按鈕網格 - 已刪除四個按鈕，保留樣式以備用 */
+        .function-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1.2rem;
+            margin: 2.5rem 0;
+        }
+
+        .function-button {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, rgba(26, 43, 109, 0.8) 0%, rgba(213, 43, 30, 0.8) 100%);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            text-decoration: none;
+            transition: all 0.3s;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            text-align: center;
+        }
+
+        .function-button:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+            background: linear-gradient(135deg, rgba(26, 43, 109, 1) 0%, rgba(213, 43, 30, 1) 100%);
+        }
+
+        .function-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .function-title {
+            font-size: 1.3rem;
+            color: #FFD700;
+            margin-bottom: 0.5rem;
+        }
+
+        .function-desc {
+            font-size: 0.95rem;
+            color: rgba(255, 255, 255, 0.8);
+            line-height: 1.5;
+        }
+
+        /* 新樣式：應用程式列表 */
+        .app-list {
+            margin: 2rem 0;
+        }
+
+        .app-item {
+            display: flex;
+            align-items: center;
+            padding: 1.2rem;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: background 0.3s;
+        }
+
+        .app-item:hover {
+            background: rgba(0, 0, 0, 0.6);
+        }
+
+        .app-icon {
+            width: 60px;
+            height: 60px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 1.5rem;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .app-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .app-info {
+            flex: 1;
+        }
+
+        .app-name {
+            font-size: 1.2rem;
+            color: #FFD700;
+            margin-bottom: 0.3rem;
+        }
+
+        .app-desc {
+            font-size: 0.95rem;
+            color: rgba(255, 255, 255, 0.8);
         }
 
         /* 提示框 */
@@ -604,27 +909,46 @@
             display: none;
         }
 
-        /* 暫無內容提示 */
-        .placeholder-content {
-            text-align: center;
-            padding: 3rem;
-            background: rgba(0, 0, 0, 0.5);
-            border-radius: 12px;
-            border: 2px dashed rgba(255, 215, 0, 0.3);
-            margin: 2rem 0;
-        }
-
-        .placeholder-content h3 {
-            color: #FFD700;
-            font-size: 1.5rem;
-            margin-bottom: 1rem;
-        }
-
-        .placeholder-content p {
-            color: rgba(255, 255, 255, 0.8);
+        /* 電話連結 - 修改為與相關資源相同的金色 */
+        .phone-link {
+            color: #FFD700; /* 改為金色，與相關資源連結顏色一致 */
+            text-decoration: none;
+            font-weight: bold;
             font-size: 1.1rem;
-            max-width: 600px;
-            margin: 0 auto;
+        }
+
+        .phone-link:hover {
+            text-decoration: underline;
+        }
+
+        /* 相關資源連結顏色 - 統一為金色 */
+        .content-card a {
+            color: #FFD700; /* 將所有內容卡片中的連結改為金色 */
+        }
+        
+        /* 但排除功能按鈕和行動按鈕，它們有自己的樣式 */
+        .content-card .function-button,
+        .content-card .action-button {
+            color: white; /* 保持按鈕文字為白色 */
+        }
+        
+        .content-card .function-button .function-title,
+        .content-card .function-button .function-desc {
+            color: inherit; /* 繼承按鈕的顏色設定 */
+        }
+
+        /* 應用程式圖標佔位符 */
+        .app-icon-placeholder {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1A2B6D 0%, #D52B1E 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.8rem;
+            text-align: center;
+            padding: 0.5rem;
         }
 
         /* 桌面適配 (移動優先) */
@@ -663,6 +987,14 @@
             .footer-links a {
                 font-size: 0.85rem;
             }
+
+            .duties-grid {
+                grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            }
+
+            .function-buttons {
+                grid-template-columns: repeat(2, 1fr);
+            }
         }
 
         @media (min-width: 1024px) {
@@ -682,35 +1014,43 @@
             .notification-date {
                 min-width: 180px;
             }
+
+            .duties-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+
+            .function-buttons {
+                grid-template-columns: repeat(4, 1fr);
+            }
         }
 
         @media (max-width: 767px) {
-            .features-grid {
+            .function-buttons {
                 grid-template-columns: 1fr;
-                gap: 1.5rem;
+                gap: 1rem;
             }
 
-            .placeholder-content {
-                padding: 2rem 1rem;
+            .permissions-table {
+                grid-template-columns: 1fr;
             }
 
-            .notification-item {
+            .duties-grid {
+                grid-template-columns: 1fr;
+                gap: 1.2rem;
+            }
+
+            .step-item {
                 flex-direction: column;
-                align-items: flex-start;
             }
 
-            .notification-date {
-                min-width: auto;
-                border-right: none;
-                border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-                padding-right: 0;
-                padding-bottom: 0.5rem;
-                margin-bottom: 0.5rem;
-                width: 100%;
+            .step-icon {
+                margin-right: 0;
+                margin-bottom: 1rem;
+                align-self: flex-start;
             }
 
-            .notification-content {
-                padding-left: 0;
+            .steps-line {
+                left: 30px;
             }
             
             .footer-links a {
@@ -846,49 +1186,328 @@
             <!-- 主要內容卡片 -->
             <div class="content-card">
                 <h2>了解您在海外的權利</h2>
-                <p>領事保護是指當您在海外遇到困難時，駐外使領館依法向您提供的幫助和保護。這包括但不限於：提供當地醫院、律師、翻譯等資訊；在您遭遇意外時協助您與國內親屬聯繫；在您遭遇不公正待遇時向當地有關部門反映您的情況等。</p>
+                <p>領事保護是指當您在海外遇到困難時，駐外使領館依法向您提供的幫助和保護。外交部及駐外使領館依法提供7×24小時領事保護，維護您在境外的人身安全與正當權益。</p>
                 
-                <!-- 暫無內容提示 -->
-                <div class="placeholder-content">
-                    <h3>🚧 內容正在準備中</h3>
-                    <p>本專區正在建設中，詳細內容將於近期更新。請隨時關注我們的最新通知。</p>
+                <!-- 職責邊界 -->
+                <h3>職責邊界</h3>
+                <div class="duties-grid">
+                    <div class="duty-card">
+                        <div class="duty-icon">⚠️</div>
+                        <div class="duty-title">預警先行</div>
+                        <div class="duty-desc">發布三級安全提醒，涵蓋"注意安全""謹慎前往""暫勿前往"，覆蓋全球190餘個國家和地區</div>
+                        <span class="duty-stat">覆蓋190+國家</span>
+                    </div>
+                    
+                    <div class="duty-card">
+                        <div class="duty-icon">🚨</div>
+                        <div class="duty-title">應急響應</div>
+                        <div class="duty-desc">重大突發事件中敦促駐在國啟動應急機制，2023年累計處理領保案件約8萬起</div>
+                        <span class="duty-stat">2023年處理8萬件</span>
+                    </div>
+                    
+                    <div class="duty-card">
+                        <div class="duty-icon">👁️</div>
+                        <div class="duty-title">探視協助</div>
+                        <div class="duty-desc">為被拘押公民提供領事探視，監督人道待遇落實情況</div>
+                        <span class="duty-stat">人道監督</span>
+                    </div>
+                    
+                    <div class="duty-card">
+                        <div class="duty-icon">📞</div>
+                        <div class="duty-title">信息聯通</div>
+                        <div class="duty-desc">協助尋找失聯親屬，將意外傷亡情況第一時間通報國內家屬</div>
+                        <span class="duty-stat">第一時間通報</span>
+                    </div>
+                    
+                    <div class="duty-card">
+                        <div class="duty-icon">📋</div>
+                        <div class="duty-title">證件應急</div>
+                        <div class="duty-desc">為遺失旅行證件公民簽發應急旅行證，平均辦結時效縮短至3個工作日</div>
+                        <span class="duty-stat">3工作日辦結</span>
+                    </div>
                 </div>
                 
-                <div class="features-grid">
-                    <div class="feature-card">
-                        <h4>🛡️ 領事保護範圍</h4>
-                        <p>了解領事保護可以為您提供的具體幫助和服務範圍，確保您在海外遇到困難時知道如何尋求幫助。</p>
+                <!-- 權限清單 -->
+                <h3>權限清單</h3>
+                <div class="permissions-table">
+                    <div class="permission-column can-do">
+                        <h4>可提供協助</h4>
+                        
+                        <div class="permission-item">
+                            <div class="permission-icon">✅</div>
+                            <div class="permission-text">提供當地醫院、律師、翻譯等資訊</div>
+                        </div>
+                        
+                        <div class="permission-item">
+                            <div class="permission-icon">✅</div>
+                            <div class="permission-text">協助遭遇意外時與國內親屬聯繫</div>
+                        </div>
+                        
+                        <div class="permission-item">
+                            <div class="permission-icon">✅</div>
+                            <div class="permission-text">在遭遇不公正待遇時向當地有關部門反映情況</div>
+                        </div>
+                        
+                        <div class="permission-item">
+                            <div class="permission-icon">✅</div>
+                            <div class="permission-text">為被拘押公民提供領事探視</div>
+                        </div>
                     </div>
                     
-                    <div class="feature-card">
-                        <h4>📞 緊急聯繫方式</h4>
-                        <p>全球各地使領館的緊急聯繫電話和地址，確保您在需要時能夠及時聯繫到相關機構。</p>
+                    <div class="permission-column cannot-do">
+                        <h4>不提供服務</h4>
+                        
+                        <div class="permission-item">
+                            <div class="permission-icon">❌</div>
+                            <div class="permission-text">不介入勞務糾紛、商業爭議、家庭矛盾等民事範疇</div>
+                        </div>
+                        
+                        <div class="permission-item">
+                            <div class="permission-icon">❌</div>
+                            <div class="permission-text">不干預駐在國司法程序，不為違法犯罪行為提供庇護</div>
+                        </div>
+                        
+                        <div class="permission-item">
+                            <div class="permission-icon">❌</div>
+                            <div class="permission-text">不提供資金擔保，不墊付律師、醫療、翻譯等任何費用</div>
+                        </div>
+                        
+                        <div class="permission-item">
+                            <div class="permission-icon">❌</div>
+                            <div class="permission-text">不參與刑事調查，不代向外國警方報案或代管個人物品</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 出行前置 -->
+                <h3>出行前置準備</h3>
+                <div class="steps-container">
+                    <div class="steps-line"></div>
+                    
+                    <div class="step-item">
+                        <div class="step-icon">1️⃣</div>
+                        <div class="step-content">
+                            <div class="step-title">信息登記</div>
+                            <div class="step-desc">行前通過中國領事APP完成"海外中國公民登記"，提升應急響應效率</div>
+                        </div>
                     </div>
                     
-                    <div class="feature-card">
-                        <h4>📋 常見問題解答</h4>
-                        <p>關於領事保護的常見問題和解答，幫助您快速了解相關資訊和流程。</p>
+                    <div class="step-item">
+                        <div class="step-icon">2️⃣</div>
+                        <div class="step-content">
+                            <div class="step-title">熱線存備</div>
+                            <div class="step-desc">保存12308熱線及駐外使領館24小時值班電話，建議離線存入手機備忘錄</div>
+                        </div>
                     </div>
                     
-                    <div class="feature-card">
-                        <h4>🌍 國家特定指南</h4>
-                        <p>針對不同國家的特定領事保護指南和注意事項，幫助您更好地準備海外行程。</p>
+                    <div class="step-item">
+                        <div class="step-icon">3️⃣</div>
+                        <div class="step-content">
+                            <div class="step-title">保險必備</div>
+                            <div class="step-desc">購買覆蓋人身、醫療、緊急救援的境外綜合保險，保額建議不低於100萬元人民幣</div>
+                        </div>
                     </div>
+                    
+                    <div class="step-item">
+                        <div class="step-icon">4️⃣</div>
+                        <div class="step-content">
+                            <div class="step-title">證件核查</div>
+                            <div class="step-desc">確保護照有效期6個月以上，簽證種類與出行目的嚴格相符</div>
+                        </div>
+                    </div>
+                    
+                    <div class="step-item">
+                        <div class="step-icon">5️⃣</div>
+                        <div class="step-content">
+                            <div class="step-title">風險評估</div>
+                            <div class="step-desc">關注目的地政治、治安、疫情、自然災害動態，避免前往"暫勿前往"警示區域</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 風險應對 -->
+                <h3>風險應對指南</h3>
+                <div class="risk-container">
+                    <div class="risk-item">
+                        <div class="risk-header">
+                            <div class="risk-icon">🚓</div>
+                            <div class="risk-title">遇險處置</div>
+                            <div class="risk-toggle">▼</div>
+                        </div>
+                        <div class="risk-content">
+                            <p>第一時間向當地警方報案並獲取書面證明，同步向使領館備案</p>
+                        </div>
+                    </div>
+                    
+                    <div class="risk-item">
+                        <div class="risk-header">
+                            <div class="risk-icon">⚖️</div>
+                            <div class="risk-title">依法維權</div>
+                            <div class="risk-toggle">▼</div>
+                        </div>
+                        <div class="risk-content">
+                            <p>通過當地行政復議、司法訴訟等正當渠道解決糾紛，切勿暴力抗法</p>
+                        </div>
+                    </div>
+                    
+                    <div class="risk-item">
+                        <div class="risk-header">
+                            <div class="risk-icon">🤝</div>
+                            <div class="risk-title">就近求助</div>
+                            <div class="risk-toggle">▼</div>
+                        </div>
+                        <div class="risk-content">
+                            <p>充分調動學校、僑團、雇主等在地資源，第一時間尋求協助</p>
+                        </div>
+                    </div>
+                    
+                    <div class="risk-item">
+                        <div class="risk-header">
+                            <div class="risk-icon">🎭</div>
+                            <div class="risk-title">反詐防騙</div>
+                            <div class="risk-toggle">▼</div>
+                        </div>
+                        <div class="risk-content">
+                            <p>警惕冒充使領館、公檢法、熟人等電信網絡詐騙，牢記"六個凡是"原則</p>
+                        </div>
+                    </div>
+                    
+                    <div class="risk-item">
+                        <div class="risk-header">
+                            <div class="risk-icon">⚠️</div>
+                            <div class="risk-title">特別提醒</div>
+                            <div class="risk-toggle">▼</div>
+                        </div>
+                        <div class="risk-content">
+                            <p>使領館絕不會電話通知涉案或要求轉賬，任何資金要求均屬詐騙</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 功能按鈕區 - 已刪除四個按鈕 -->
+                <h3>更多詳細資訊</h3>
+                <div class="function-buttons">
+                    <!-- 已刪除四個按鈕：領事保護範圍、緊急聯繫方式、常見問題解答、國家特定指南 -->
                 </div>
                 
                 <div class="info-box">
                     <h4>⚠️ 重要提醒</h4>
                     <p>領事保護不能代替當地法律，也不能干預當地司法程序。在海外期間，您仍需遵守當地法律法規，並對自己的行為負責。</p>
+                    <p><strong>請廣大同胞特別注意：</strong></p>
+                    <ul>
+                        <li>保存外交部全球領事保護與服務應急熱線 <a href="tel:+86-10-12308" class="phone-link">+86-10-12308</a> 及駐外使領館24小時值班電話</li>
+                        <li>境外遇險立即撥打當地報警電話，同步聯繫使領館備案，獲取書面報警回執</li>
+                        <li>任何要求拍攝被綁視頻、繳納"保證金"或轉賬至"安全賬戶"的指令均屬詐騙，請直接掛斷並通過官方渠道核實</li>
+                    </ul>
                 </div>
                 
                 <h3>相關資源</h3>
                 <p>以下資源可能對您有幫助：</p>
                 <ul>
-                    <li>外交部全球領事保護與服務應急呼叫中心：+86-10-12308</li>
-                    <li>中國領事服務網：cs.mfa.gov.cn</li>
-                    <li>「領事直通車」微信公眾號</li>
-                    <li>各駐外使領館官方網站</li>
+                    <li>外交部全球領事保護與服務應急呼叫中心：<a href="tel:+86-10-12308" class="phone-link">+86-10-12308</a></li>
+                    <li>中國領事服務網：<a href="https://cs.mfa.gov.cn" target="_blank">cs.mfa.gov.cn</a></li>
                 </ul>
+                
+                <!-- 應用程式列表 - 已按照要求順序重新排列 -->
+                <div class="app-list">
+                    <!-- 1. "中國領事"APP -->
+                    <div class="app-item">
+                        <div class="app-icon">
+                            <div class="app-icon-placeholder">
+                                請替換為<br>"中國領事"APP.jpg
+                            </div>
+                        </div>
+                        <div class="app-info">
+                            <div class="app-name">"中國領事"APP</div>
+                            <div class="app-desc">官方領事服務應用程式，提供全面服務</div>
+                        </div>
+                    </div>
+                    
+                    <!-- 2. "中國領事"微信小程序 -->
+                    <div class="app-item">
+                        <div class="app-icon">
+                            <div class="app-icon-placeholder">
+                                請替換為<br>"中國領事"微信小程序.jpg
+                            </div>
+                        </div>
+                        <div class="app-info">
+                            <div class="app-name">"中國領事"微信小程序</div>
+                            <div class="app-desc">提供便捷的領事服務和資訊查詢</div>
+                        </div>
+                    </div>
+                    
+                    <!-- 3. "中國領事"支付寶小程序 -->
+                    <div class="app-item">
+                        <div class="app-icon">
+                            <div class="app-icon-placeholder">
+                                請替換為<br>"中國領事"支付寶小程序.jpg
+                            </div>
+                        </div>
+                        <div class="app-info">
+                            <div class="app-name">"中國領事"支付寶小程序</div>
+                            <div class="app-desc">在支付寶平台獲取領事服務</div>
+                        </div>
+                    </div>
+                    
+                    <!-- 4. "領事直通車"微信公眾號 -->
+                    <div class="app-item">
+                        <div class="app-icon">
+                            <div class="app-icon-placeholder">
+                                請替換為<br>"領事直通車"微信公眾號.jpg
+                            </div>
+                        </div>
+                        <div class="app-info">
+                            <div class="app-name">"領事直通車"微信公眾號</div>
+                            <div class="app-desc">獲取最新領事保護資訊和提醒</div>
+                        </div>
+                    </div>
+                    
+                    <!-- 5. "領事直通車"嗶哩嗶哩 -->
+                    <div class="app-item">
+                        <div class="app-icon">
+                            <img src="”領事直通車”嗶哩嗶哩.png" alt="領事直通車嗶哩嗶哩">
+                        </div>
+                        <div class="app-info">
+                            <div class="app-name">"領事直通車"嗶哩嗶哩</div>
+                            <div class="app-desc">在嗶哩嗶哩平台獲取領事服務</div>
+                        </div>
+                    </div>
+                    
+                    <!-- 6. "領事直通車"快手 -->
+                    <div class="app-item">
+                        <div class="app-icon">
+                            <img src="”領事直通車”快手.png" alt="領事直通車快手">
+                        </div>
+                        <div class="app-info">
+                            <div class="app-name">"領事直通車"快手</div>
+                            <div class="app-desc">在快手平台獲取領事服務</div>
+                        </div>
+                    </div>
+                    
+                    <!-- 7. "領事直通車"抖音 -->
+                    <div class="app-item">
+                        <div class="app-icon">
+                            <img src="”領事直通車”抖音.png" alt="領事直通車抖音">
+                        </div>
+                        <div class="app-info">
+                            <div class="app-name">"領事直通車"抖音</div>
+                            <div class="app-desc">在抖音平台獲取領事服務</div>
+                        </div>
+                    </div>
+                    
+                    <!-- 8. "領事直通車"微博 -->
+                    <div class="app-item">
+                        <div class="app-icon">
+                            <img src="”領事直通車”微博.png" alt="領事直通車微博">
+                        </div>
+                        <div class="app-info">
+                            <div class="app-name">"領事直通車"微博</div>
+                            <div class="app-desc">在微博平台獲取領事服務</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <p>外交部及澳門特區政府始終將海外同胞的安全與合法權益放在首位。</p>
                 
                 <a href="index.html" class="action-button">返回主頁</a>
             </div>
@@ -986,6 +1605,23 @@
                 "zh-hans": "safety-quiz_zh-hans.html",
                 "pt": "safety-quiz_pt.html"
             },
+            // 新添加的頁面
+            "protection-scope_zh-hant.html": {
+                "zh-hans": "protection-scope_zh-hans.html",
+                "pt": "protection-scope_pt.html"
+            },
+            "emergency-contacts_zh-hant.html": {
+                "zh-hans": "emergency-contacts_zh-hans.html",
+                "pt": "emergency-contacts_pt.html"
+            },
+            "faq_zh-hant.html": {
+                "zh-hans": "faq_zh-hans.html",
+                "pt": "faq_pt.html"
+            },
+            "country-guides_zh-hant.html": {
+                "zh-hans": "country-guides_zh-hans.html",
+                "pt": "country-guides_pt.html"
+            },
             
             // 简体页面 (zh-hans) 为基准
             "index_zh-hans.html": {
@@ -1040,6 +1676,23 @@
                 "zh-hant": "safety-quiz_zh-hant.html",
                 "pt": "safety-quiz_pt.html"
             },
+            // 新添加的頁面
+            "protection-scope_zh-hans.html": {
+                "zh-hant": "protection-scope_zh-hant.html",
+                "pt": "protection-scope_pt.html"
+            },
+            "emergency-contacts_zh-hans.html": {
+                "zh-hant": "emergency-contacts_zh-hant.html",
+                "pt": "emergency-contacts_pt.html"
+            },
+            "faq_zh-hans.html": {
+                "zh-hant": "faq_zh-hant.html",
+                "pt": "faq_pt.html"
+            },
+            "country-guides_zh-hans.html": {
+                "zh-hant": "country-guides_zh-hant.html",
+                "pt": "country-guides_pt.html"
+            },
             
             // 葡文页面 (pt) 为基准
             "index_pt.html": {
@@ -1093,6 +1746,23 @@
             "safety-quiz_pt.html": {
                 "zh-hant": "safety-quiz_zh-hant.html",
                 "zh-hans": "safety-quiz_zh-hans.html"
+            },
+            // 新添加的頁面
+            "protection-scope_pt.html": {
+                "zh-hant": "protection-scope_zh-hant.html",
+                "zh-hans": "protection-scope_zh-hans.html"
+            },
+            "emergency-contacts_pt.html": {
+                "zh-hant": "emergency-contacts_zh-hant.html",
+                "zh-hans": "emergency-contacts_zh-hans.html"
+            },
+            "faq_pt.html": {
+                "zh-hant": "faq_zh-hant.html",
+                "zh-hans": "faq_zh-hans.html"
+            },
+            "country-guides_pt.html": {
+                "zh-hant": "country-guides_zh-hant.html",
+                "zh-hans": "country-guides_zh-hans.html"
             }
         };
 
@@ -1151,6 +1821,7 @@
             const contentSection = document.getElementById('content-section');
             const langButtons = document.querySelectorAll('.lang-btn');
             const footer = document.getElementById('footer');
+            const riskItems = document.querySelectorAll('.risk-item');
             
             let lastScrollTop = 0;
             let isMenuOpen = false;
@@ -1186,6 +1857,14 @@
                 if (e.target.tagName === 'A') {
                     toggleMenu();
                 }
+            });
+
+            // 風險應對折疊卡片功能
+            riskItems.forEach(item => {
+                const header = item.querySelector('.risk-header');
+                header.addEventListener('click', () => {
+                    item.classList.toggle('active');
+                });
             });
 
             // ==================== 语言按钮高亮逻辑 ====================
