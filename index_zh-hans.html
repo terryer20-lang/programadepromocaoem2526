@@ -191,6 +191,8 @@
         .menu-content {
             flex: 1;
             padding: 1.2rem;
+            padding-bottom: 10rem;
+
         }
 
         .menu-section {
@@ -1814,12 +1816,12 @@
                             setTimeout(() => {
                                 earthLoading.style.display = 'none';
                                 
-                                // 开始快速旋转动画（1秒）
+                                // 开始快速旋转动画（0.5秒）
                                 let fastRotationTime = 0;
-                                const fastRotationSpeed = 6.0; // 快速旋转速度
+                                const fastRotationSpeed = 12.0; // 快速旋转速度
                                 
                                 function fastRotate() {
-                                    if (fastRotationTime < 1000) { // 1秒
+                                    if (fastRotationTime < 500) { // 0.5秒
                                         const rotate = projection.rotate();
                                         projection.rotate([rotate[0] + fastRotationSpeed, rotate[1], rotate[2]]);
                                         
